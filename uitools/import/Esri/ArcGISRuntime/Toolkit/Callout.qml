@@ -480,6 +480,7 @@ Item {
                         color: "transparent"
                         Layout.rowSpan: 2
                         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                        visible: calloutData.imageUrl.toString() !== ""
 
                         Image {
                             id: image
@@ -512,6 +513,7 @@ Item {
                         height: width
                         color: "transparent"
                         Layout.rowSpan: 2
+                        visible: !accessoryButtonHidden
 
                         Image {
                             id: accessoryButtonImage
@@ -519,14 +521,12 @@ Item {
                             width: 40
                             height: width
                             fillMode: Image.PreserveAspectFit
-                            visible: !accessoryButtonHidden
                         }
 
                         MouseArea {
                           id: region
                           anchors.fill: parent
                           onClicked: accessoryButtonClicked()
-                          visible: !accessoryButtonHidden
                         }
                     }
 
