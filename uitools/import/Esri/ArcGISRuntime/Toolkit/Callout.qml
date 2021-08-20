@@ -524,9 +524,9 @@ Item {
                         }
 
                         MouseArea {
-                          id: region
-                          anchors.fill: parent
-                          onClicked: accessoryButtonClicked()
+                            id: region
+                            anchors.fill: parent
+                            onClicked: accessoryButtonClicked()
                         }
                     }
 
@@ -724,180 +724,180 @@ Item {
         // Callout is 'narrow' if it's less than half the width of the MapView
         var narrowCallout = true;
         if (calloutFrame.width > (mapViewWidth + (mapViewInsets.left + mapViewInsets.right)) / 2) {
-          narrowCallout = false;
+            narrowCallout = false;
         }
 
         // Callout is 'short' if it's less than half the height of the MapView
         var shortCallout = true;
         if (calloutFrame.height > (mapViewHeight + (mapViewInsets.top + mapViewInsets.bottom)) / 2) {
-          shortCallout = false;
+            shortCallout = false;
         }
 
         switch (direction) {
-          case Enums.LeaderMoveDirection.Down:
+        case Enums.LeaderMoveDirection.Down:
             // Bottom edge of callout is below bottom edge of map.
             // Move leader down so the callout moves up
             switch (adjustedLeaderPosition) {
-              case Enums.LeaderPosition.UpperLeft:
+            case Enums.LeaderPosition.UpperLeft:
                 if (shortCallout || anchorY > mapViewHeight / 3) {
-                  adjustedLeaderPosition = Enums.LeaderPosition.Left;
-                  refresh = true;
+                    adjustedLeaderPosition = Enums.LeaderPosition.Left;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.Left:
+            case Enums.LeaderPosition.Left:
                 if (shortCallout || anchorY > mapViewHeight * 2 / 3) {
-                  adjustedLeaderPosition = Enums.LeaderPosition.LowerLeft;
-                  refresh = true;
+                    adjustedLeaderPosition = Enums.LeaderPosition.LowerLeft;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.Top:
+            case Enums.LeaderPosition.Top:
                 if (shortCallout || anchorY > mapViewHeight / 2) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Bottom;
                     refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.UpperRight:
+            case Enums.LeaderPosition.UpperRight:
                 if (shortCallout || anchorY > mapViewHeight / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Right;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.Right:
+            case Enums.LeaderPosition.Right:
                 if (shortCallout || anchorY > mapViewHeight * 2 / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.LowerRight;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
             }
             break;
-          case Enums.LeaderMoveDirection.Up:
+        case Enums.LeaderMoveDirection.Up:
             // Top edge of callout is above top edge of map.
             // Move leader up so the callout moves down
             switch (adjustedLeaderPosition) {
-              case Enums.LeaderPosition.LowerLeft:
+            case Enums.LeaderPosition.LowerLeft:
                 if (shortCallout || anchorY < mapViewHeight * 2 / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Left
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.Left:
+            case Enums.LeaderPosition.Left:
                 if (shortCallout || anchorY < mapViewHeight / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.UpperLeft;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.Bottom:
+            case Enums.LeaderPosition.Bottom:
                 if (shortCallout || anchorY < mapViewHeight / 2) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Top;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.LowerRight:
+            case Enums.LeaderPosition.LowerRight:
                 if (shortCallout || anchorY < mapViewHeight * 2 / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Right;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.Right:
+            case Enums.LeaderPosition.Right:
                 if (shortCallout || anchorY < mapViewHeight / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.UpperRight;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
             }
             break;
-          case Enums.LeaderMoveDirection.Left:
+        case Enums.LeaderMoveDirection.Left:
             // Left edge of callout is left of left edge of map.
             // Move leader to the left so the callout moves right
             switch (adjustedLeaderPosition) {
-              case Enums.LeaderPosition.UpperRight:
+            case Enums.LeaderPosition.UpperRight:
                 if (narrowCallout || anchorX < mapViewWidth * 2 / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Top;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.Right:
+            case Enums.LeaderPosition.Right:
                 if (narrowCallout || anchorX < mapViewWidth / 2) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Left;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.LowerRight:
+            case Enums.LeaderPosition.LowerRight:
                 if (narrowCallout || anchorX < mapViewWidth * 2 / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Bottom;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.Top:
+            case Enums.LeaderPosition.Top:
                 if (narrowCallout || anchorX < mapViewWidth / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.UpperLeft;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.Bottom:
+            case Enums.LeaderPosition.Bottom:
                 if (narrowCallout || anchorX < mapViewWidth * 2 / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.LowerLeft;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.LowerLeft:
+            case Enums.LeaderPosition.LowerLeft:
                 if (narrowCallout || anchorX < mapViewWidth / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Left;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.UpperLeft:
+            case Enums.LeaderPosition.UpperLeft:
                 if (narrowCallout || anchorX < mapViewWidth / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Left;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
             }
             break;
-          case Enums.LeaderMoveDirection.Right:
+        case Enums.LeaderMoveDirection.Right:
             // Right edge of callout is right of right edge of map.
             // Move leader to the right so the callout moves left
             switch (adjustedLeaderPosition) {
-              case Enums.LeaderPosition.UpperLeft:
+            case Enums.LeaderPosition.UpperLeft:
                 if (narrowCallout || anchorX > mapViewWidth / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Top;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.Left:
+            case Enums.LeaderPosition.Left:
                 if (narrowCallout || anchorX > mapViewWidth / 2) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Right;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.LowerLeft:
+            case Enums.LeaderPosition.LowerLeft:
                 if (narrowCallout || anchorX > mapViewWidth / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Bottom;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.Top:
+            case Enums.LeaderPosition.Top:
                 if (narrowCallout || anchorX > mapViewWidth * 2 / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.UpperRight;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.Bottom:
+            case Enums.LeaderPosition.Bottom:
                 if (narrowCallout || anchorX > mapViewWidth * 2 / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.LowerRight;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.LowerRight:
+            case Enums.LeaderPosition.LowerRight:
                 if (narrowCallout || anchorX > mapViewWidth * 2 / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Right;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
-              case Enums.LeaderPosition.UpperRight:
+            case Enums.LeaderPosition.UpperRight:
                 if (narrowCallout || anchorX > mapViewWidth * 2 / 3) {
                     adjustedLeaderPosition = Enums.LeaderPosition.Right;
-                  refresh = true;
+                    refresh = true;
                 }
                 break;
             }
