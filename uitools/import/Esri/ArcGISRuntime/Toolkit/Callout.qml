@@ -223,8 +223,6 @@ Item {
 
     // internal properties
     /*! \internal */
-    property int padding: 3
-    /*! \internal */
     property real anchorPointx: 0
     /*! \internal */
     property real anchorPointy: 0
@@ -456,9 +454,9 @@ Item {
             Rectangle {
                 id: calloutContentFrame
                 anchors {
-                    left: parent.left
                     top: parent.top
                 }
+                x: calloutFramePadding
                 visible: !calloutContent
 
                 GridLayout {
@@ -489,6 +487,8 @@ Item {
                             height: width
                             fillMode : Image.PreserveAspectFit
                         }
+
+                        visible: image.source.toString() !== ""
                     }
 
                     Text {
@@ -543,6 +543,8 @@ Item {
                         elide: Text.ElideRight
                         Layout.alignment: Qt.AlignVCenter
                         Layout.maximumWidth: !autoAdjustWidth ? detailWidth : Math.max(0, adjustedMaxWidth - 90) // resets to implicit width if non-autoAdjust
+
+                        visible: text !== ""
                     }
                 }
             }
@@ -933,7 +935,7 @@ Item {
             if (calloutLayout.width === 0) {
                 rectWidth = minWidth;
             } else {
-                rectWidth = calloutLayout.width + calloutFramePadding;
+                rectWidth = calloutLayout.width + (calloutFramePadding * 2);
             }
 
             // If we know the height of the content, base the height on that
