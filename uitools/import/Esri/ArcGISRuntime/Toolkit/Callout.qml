@@ -453,23 +453,13 @@ Item {
 
             Rectangle {
                 id: calloutContentFrame
-                anchors {
-                    top: parent.top
-                }
+
                 x: calloutFramePadding
+                y: calloutFramePadding
                 visible: !calloutContent
 
-                GridLayout {
+                RowLayout {
                     id: calloutLayout
-                    anchors {
-                        left: parent.left
-                        top: parent.top
-                    }
-                    height: calloutHeight
-                    width: calloutWidth
-                    columns: 3
-                    rows: 2
-                    columnSpacing: 7
 
                     Rectangle {
                         id: imageRect
@@ -487,64 +477,66 @@ Item {
                             height: width
                             fillMode : Image.PreserveAspectFit
                         }
-
-                        visible: image.source.toString() !== ""
                     }
 
-                    Text {
-                        id: title
-                        text: calloutData ? calloutData.title : ""
-                        wrapMode: Text.NoWrap
-                        renderType: Text.NativeRendering
-                        color: titleTextColor
-                        font {
-                            pixelSize: 11
-                            family: "sanserif"
+                    ColumnLayout {
+                        RowLayout {
+                            Text {
+                                id: title
+                                text: calloutData ? calloutData.title : ""
+                                wrapMode: Text.NoWrap
+                                renderType: Text.NativeRendering
+                                color: titleTextColor
+                                font {
+                                    pixelSize: 11
+                                    family: "sanserif"
+                                }
+                                clip: true
+                                elide: Text.ElideRight
+                                Layout.alignment: Qt.AlignVCenter
+                                Layout.maximumWidth: !autoAdjustWidth ? titleWidth : Math.max(0, adjustedMaxWidth - 90) // resets to implicit width if non-autoAdjust
+                            }
+
+                            Rectangle {
+                                id: accessoryButton
+                                width: 40
+                                height: width
+                                color: "transparent"
+                                Layout.rowSpan: 2
+                                visible: !accessoryButtonHidden
+
+                                Image {
+                                    id: accessoryButtonImage
+                                    anchors.fill: parent
+                                    width: 40
+                                    height: width
+                                    fillMode: Image.PreserveAspectFit
+                                }
+
+                                MouseArea {
+                                    id: region
+                                    anchors.fill: parent
+                                    onClicked: accessoryButtonClicked()
+                                }
+                            }
                         }
-                        clip: true
-                        elide: Text.ElideRight
-                        Layout.alignment: Qt.AlignVCenter
-                        Layout.maximumWidth: !autoAdjustWidth ? titleWidth : Math.max(0, adjustedMaxWidth - 90) // resets to implicit width if non-autoAdjust
-                    }
 
-                    Rectangle {
-                        id: accessoryButton
-                        width: 40
-                        height: width
-                        color: "transparent"
-                        Layout.rowSpan: 2
-                        visible: !accessoryButtonHidden
+                        Text {
+                            id: detail
+                            text: calloutData ? calloutData.detail : ""
+                            renderType: Text.NativeRendering
+                            color: detailTextColor
+                            font {
+                                pixelSize: 10
+                                family: "sanserif"
+                            }
+                            wrapMode: Text.WordWrap
+                            elide: Text.ElideNone
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.maximumWidth: !autoAdjustWidth ? detailWidth : Math.max(0, adjustedMaxWidth - 90) // resets to implicit width if non-autoAdjust
 
-                        Image {
-                            id: accessoryButtonImage
-                            anchors.fill: parent
-                            width: 40
-                            height: width
-                            fillMode: Image.PreserveAspectFit
+                            visible: text !== ""
                         }
-
-                        MouseArea {
-                            id: region
-                            anchors.fill: parent
-                            onClicked: accessoryButtonClicked()
-                        }
-                    }
-
-                    Text {
-                        id: detail
-                        text: calloutData ? calloutData.detail : ""
-                        renderType: Text.NativeRendering
-                        color: detailTextColor
-                        font {
-                            pixelSize: 10
-                            family: "sanserif"
-                        }
-                        wrapMode: Text.NoWrap
-                        elide: Text.ElideRight
-                        Layout.alignment: Qt.AlignVCenter
-                        Layout.maximumWidth: !autoAdjustWidth ? detailWidth : Math.max(0, adjustedMaxWidth - 90) // resets to implicit width if non-autoAdjust
-
-                        visible: text !== ""
                     }
                 }
             }
@@ -931,19 +923,10 @@ Item {
         var minHeight = Math.min(calloutMinHeight, calcMaxHeight); // don't allow minHeight to be > maxHeight
 
         if (autoAdjustWidth) {
-            // If we know the width of the content, base the width on that
-            if (calloutLayout.width === 0) {
-                rectWidth = minWidth;
-            } else {
-                rectWidth = calloutLayout.width + (calloutFramePadding * 2);
-            }
+            rectWidth = Math.max(minWidth, (calloutLayout.width + (calloutFramePadding * 2)));
+            rectHeight = Math.max(minHeight, (calloutLayout.height + (calloutFramePadding * 2)));
 
-            // If we know the height of the content, base the height on that
-            rectHeight = calloutLayout.height;
-
-
-            adjustedMaxWidth = maxWidth - (2 * leaderWidth) - edgeBuffer;
-            adjustedMaxWidth = Math.max(calloutMinWidth, adjustedMaxWidth);
+            adjustedMaxWidth = Math.max(calloutMinWidth, maxWidth - (2 * leaderWidth) - edgeBuffer);
 
             if (rectWidth > maxWidth) {
                 rectWidth = adjustedMaxWidth;
