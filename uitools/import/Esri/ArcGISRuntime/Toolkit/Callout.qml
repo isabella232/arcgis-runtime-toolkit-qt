@@ -295,8 +295,7 @@ Item {
         function onVisibleChanged() {
             if (calloutData.visible) {
                 showCallout();
-            }
-            else {
+            } else {
                 dismiss();
             }
         }
@@ -480,45 +479,21 @@ Item {
                     }
 
                     ColumnLayout {
-                        RowLayout {
-                            Text {
-                                id: title
-                                text: calloutData ? calloutData.title : ""
-                                wrapMode: Text.NoWrap
-                                renderType: Text.NativeRendering
-                                color: titleTextColor
-                                font {
-                                    pixelSize: 11
-                                    family: "sanserif"
-                                }
-                                clip: true
-                                elide: Text.ElideRight
-                                Layout.alignment: Qt.AlignVCenter
-                                Layout.maximumWidth: !autoAdjustWidth ? titleWidth : Math.max(0, adjustedMaxWidth - 90) // resets to implicit width if non-autoAdjust
+                        id: titleAndDetailColumn
+                        Text {
+                            id: title
+                            text: calloutData ? calloutData.title : ""
+                            wrapMode: Text.NoWrap
+                            renderType: Text.NativeRendering
+                            color: titleTextColor
+                            font {
+                                pixelSize: 11
+                                family: "sanserif"
                             }
-
-                            Rectangle {
-                                id: accessoryButton
-                                width: 40
-                                height: width
-                                color: "transparent"
-                                Layout.rowSpan: 2
-                                visible: !accessoryButtonHidden
-
-                                Image {
-                                    id: accessoryButtonImage
-                                    anchors.fill: parent
-                                    width: 40
-                                    height: width
-                                    fillMode: Image.PreserveAspectFit
-                                }
-
-                                MouseArea {
-                                    id: region
-                                    anchors.fill: parent
-                                    onClicked: accessoryButtonClicked()
-                                }
-                            }
+                            clip: true
+                            elide: Text.ElideRight
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.maximumWidth: !autoAdjustWidth ? titleWidth : Math.max(0, adjustedMaxWidth - 90) // resets to implicit width if non-autoAdjust
                         }
 
                         Text {
@@ -536,6 +511,29 @@ Item {
                             Layout.maximumWidth: !autoAdjustWidth ? detailWidth : Math.max(0, adjustedMaxWidth - 90) // resets to implicit width if non-autoAdjust
 
                             visible: text !== ""
+                        }
+                    }
+
+                    Rectangle {
+                        id: accessoryButton
+                        width: 40
+                        height: width
+                        color: "transparent"
+                        Layout.rowSpan: 2
+                        visible: !accessoryButtonHidden
+
+                        Image {
+                            id: accessoryButtonImage
+                            anchors.fill: parent
+                            width: 40
+                            height: width
+                            fillMode: Image.PreserveAspectFit
+                        }
+
+                        MouseArea {
+                            id: region
+                            anchors.fill: parent
+                            onClicked: accessoryButtonClicked()
                         }
                     }
                 }
@@ -919,12 +917,25 @@ Item {
 
         var calcMaxWidth = calloutContentMaxWidth() + 2 * internalCornerRadius;
         var calcMaxHeight = calloutContentMaxHeight() + 2 * internalCornerRadius;
+
         var minWidth = Math.min(calloutMinWidth, calcMaxWidth); // don't allow minWidth to be > maxWidth
         var minHeight = Math.min(calloutMinHeight, calcMaxHeight); // don't allow minHeight to be > maxHeight
 
         if (autoAdjustWidth) {
-            rectWidth = Math.max(minWidth, (calloutLayout.width + (calloutFramePadding * 2)));
-            rectHeight = Math.max(minHeight, (calloutLayout.height + (calloutFramePadding * 2)));
+            let calloutLayoutTrueWidth = calloutLayout.width;
+
+            if (calloutLayoutTrueWidth === 0) {
+                calloutLayoutTrueWidth = Math.max(title.width, detail.width);
+                if (imageRect.visible)
+                    calloutLayoutTrueWidth += imageRect.width
+                if (accessoryButton.visible)
+                    calloutLayoutTrueWidth += accessoryButton.visible
+            }
+
+            calloutLayoutTrueWidth = Math.max(calloutLayout.width, calloutLayoutTrueWidth);
+
+            rectWidth = Math.max(minWidth, (calloutLayoutTrueWidth + (calloutFramePadding * 2)));
+            rectHeight = Math.max(minHeight, (calloutLayout.height + (calloutFramePadding * 2))) + 1;
 
             adjustedMaxWidth = Math.max(calloutMinWidth, maxWidth - (2 * leaderWidth) - edgeBuffer);
 
@@ -940,20 +951,20 @@ Item {
         }
 
         if (debug) {
-            console.log("rectWidth = ", rectWidth);
-            console.log("rectHeight = ", rectHeight);
-            console.log("minWidth = ", minWidth);
-            console.log("minHeight = ", minHeight);
-            console.log("calloutLayout.width = ", calloutLayout.width);
-            console.log("calloutLayout.height = ", calloutLayout.height);
-            console.log("calloutContentFrame.width = ", calloutContentFrame.width);
+            console.log("rectWidth =", rectWidth);
+            console.log("rectHeight =", rectHeight);
+            console.log("minWidth =", minWidth);
+            console.log("minHeight =", minHeight);
+            console.log("calloutLayout.width =", calloutLayout.width);
+            console.log("calloutLayout.height =", calloutLayout.height);
+            console.log("calloutContentFrame.width =", calloutContentFrame.width);
             console.log("dpi", Screen.pixelDensity * 25.4);
-            console.log("detailWidth = ", detailWidth)
-            console.log("titleWidth = ", titleWidth);
-            console.log("imageWidth = ", imageWidth);
-            console.log("maxWidth = ", maxWidth);
-            console.log("calloutWidth = ", calloutWidth);
-            console.log("adjustedMaxWidth = ", adjustedMaxWidth);
+            console.log("detailWidth =", detailWidth)
+            console.log("titleWidth =", titleWidth);
+            console.log("imageWidth =", imageWidth);
+            console.log("maxWidth =", maxWidth);
+            console.log("calloutWidth =", calloutWidth);
+            console.log("adjustedMaxWidth =", adjustedMaxWidth);
         }
     }
 
