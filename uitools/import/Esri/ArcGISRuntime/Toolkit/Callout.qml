@@ -672,12 +672,12 @@ Item {
         var mapViewInsets = root.parent.viewInsets;
 
         if (debug) {
-            console.log("mousex = ", mousex);
-            console.log("mousey = ", mousey);
-            console.log("calloutFrame.width = ", calloutFrame.width);
-            console.log("calloutFrame.height = ", calloutFrame.height);
-            console.log("root.parent.width = ", root.parent.width);
-            console.log("root.parent.height = ", root.parent.height);
+            console.log("mousex =", mousex);
+            console.log("mousey =", mousey);
+            console.log("calloutFrame.width =", calloutFrame.width);
+            console.log("calloutFrame.height =", calloutFrame.height);
+            console.log("root.parent.width =", root.parent.width);
+            console.log("root.parent.height =", root.parent.height);
         }
 
         if (leaderPosition === Enums.LeaderPosition.Automatic) {
