@@ -922,20 +922,24 @@ Item {
         var minHeight = Math.min(calloutMinHeight, calcMaxHeight); // don't allow minHeight to be > maxHeight
 
         if (autoAdjustWidth) {
-            let calloutLayoutTrueWidth = calloutLayout.width;
+            let calloutLayoutTrueWidth = Math.max(title.width, detail.width);
+            if (image.source.toString() !== "")
+                calloutLayoutTrueWidth += imageRect.width
+            if (!accessoryButtonHidden)
+                calloutLayoutTrueWidth += accessoryButton.height
 
-            if (calloutLayoutTrueWidth === 0) {
-                calloutLayoutTrueWidth = Math.max(title.width, detail.width);
-                if (imageRect.visible)
-                    calloutLayoutTrueWidth += imageRect.width
-                if (accessoryButton.visible)
-                    calloutLayoutTrueWidth += accessoryButton.visible
-            }
+            let calloutLayoutTrueHeight = title.height + detail.height;
+            if (image.source.toString() !== "")
+                calloutLayoutTrueHeight = Math.max(calloutLayoutTrueHeight, imageRect.height)
+            if (!accessoryButtonHidden)
+                calloutLayoutTrueHeight = Math.max(calloutLayoutTrueHeight, accessoryButton.height)
 
-            calloutLayoutTrueWidth = Math.max(calloutLayout.width, calloutLayoutTrueWidth);
+            console.log(title.height);
+            console.log(detail.height);
+            console.log(calloutLayoutTrueHeight);
 
             rectWidth = Math.max(minWidth, (calloutLayoutTrueWidth + (calloutFramePadding * 2)));
-            rectHeight = Math.max(minHeight, (calloutLayout.height + (calloutFramePadding * 2))) + 1;
+            rectHeight = Math.max(minHeight, (calloutLayoutTrueHeight + (calloutFramePadding * 2))) + 1;
 
             adjustedMaxWidth = Math.max(calloutMinWidth, maxWidth - (2 * leaderWidth) - edgeBuffer);
 
