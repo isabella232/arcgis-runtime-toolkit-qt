@@ -505,8 +505,8 @@ Item {
                                 pixelSize: 10
                                 family: "sanserif"
                             }
-                            wrapMode: Text.WordWrap
-                            elide: Text.ElideNone
+                            wrapMode: Text.NoWrap
+                            elide: Text.ElideRight
                             Layout.alignment: Qt.AlignVCenter
                             Layout.maximumWidth: !autoAdjustWidth ? detailWidth : Math.max(0, adjustedMaxWidth - 90) // resets to implicit width if non-autoAdjust
 
@@ -933,10 +933,6 @@ Item {
                 calloutLayoutTrueHeight = Math.max(calloutLayoutTrueHeight, imageRect.height)
             if (!accessoryButtonHidden)
                 calloutLayoutTrueHeight = Math.max(calloutLayoutTrueHeight, accessoryButton.height)
-
-            console.log(title.height);
-            console.log(detail.height);
-            console.log(calloutLayoutTrueHeight);
 
             rectWidth = Math.max(minWidth, (calloutLayoutTrueWidth + (calloutFramePadding * 2)));
             rectHeight = Math.max(minHeight, (calloutLayoutTrueHeight + (calloutFramePadding * 2))) + 1;
