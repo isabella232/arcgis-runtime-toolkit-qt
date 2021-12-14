@@ -1,12 +1,17 @@
 QT += testlib
 QT -= gui
 
+CONFIG += qt console warn_on depend_includepath testcase
+CONFIG -= app_bundle
+
 TEMPLATE = app
 
-SOURCES +=  tst_searchviewfunctest.cpp
+SOURCES +=  \
+    tst_basemapgalleryfunctest.cpp
 
 HEADERS += \
-    tst_searchviewfunctest.h
+    tst_basemapgalleryfunctest.h \
+    tst_basemapgalleryfunctest.h
 
 ARCGIS_RUNTIME_VERSION = 100.13
 macx {
@@ -38,9 +43,6 @@ CONFIG -= app_bundle
 
 win32:CONFIG += embed_manifest_exe
 win32:DEFINES += _CRT_SECURE_NO_WARNINGS
-
-#INCLUDEPATH += $$PWD/src \
-#            ../../../../test/shared
 
 macx | ios {
   message($$QT_ARCH)
