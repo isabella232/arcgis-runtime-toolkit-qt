@@ -41,19 +41,24 @@ void SearchViewFuncTest::initTestCase()
 
 void SearchViewFuncTest::acceptSuggestion_1_1_1()
 {
+  // failing. results are not added when selected directly from a suggestion. wanted behaviour?
   m_locatorSource->setDisplayName("Simple Locator");
-  //todo: the suggestions in the controller are not populated (or the signal is not emitted)
-  AutoDisconnector ad1(connect(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this]()
-                               {
-                                 qDebug() << "search completed";
-                                 qDebug() << "# results: ";
-                                 qDebug() << controller->results()->rowCount();
-                                 QVERIFY(controller->results()->rowCount() == 1);
-                                 QVERIFY(controller->selectedResult() != nullptr);
-                                 QVERIFY(controller->suggestions()->rowCount() == 0);
-                                 //emit waitThis();
-                               }));
-  Q_UNUSED(ad1);
+
+  connect(controller, &Esri::ArcGISRuntime::Toolkit::SearchViewController::selectedResultChanged, this, [this]()
+          {
+            QVERIFY(controller->selectedResult() != nullptr);
+          });
+
+  connect(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this]()
+          {
+            qDebug() << "search completed";
+            qDebug() << "# results: ";
+            qDebug() << controller->results()->rowCount();
+            QVERIFY(controller->results()->rowCount() == 1);
+            QVERIFY(controller->selectedResult() != nullptr);
+            QVERIFY(controller->suggestions()->rowCount() == 0);
+          });
+  //Q_UNUSED(ad1);
 
   QMetaObject::Connection* connection = new QMetaObject::Connection();
   *connection = connect(controller->suggestions(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this, connection]()
@@ -64,14 +69,17 @@ void SearchViewFuncTest::acceptSuggestion_1_1_1()
                           if (suggestions->rowCount() > 0)
                           {
                             auto firstSuggestion = suggestions->element<SearchSuggestion>(suggestions->index(0));
+                            qDebug() << "selecting suggestion, " << firstSuggestion->displaySubtitle();
                             controller->acceptSuggestion(firstSuggestion);
                           }
                         });
   controller->setCurrentQuery("Rome");
 
   //waiting for the completed signal. It seems that without waitForSignal, the search function is not completed.
-  QSignalSpy completeSpy(this, SIGNAL(waitThis()));
-  completeSpy.wait(5000);
+  QSignalSpy completeSpy(controller->results(), SIGNAL(rowsInserted()));
+  QVERIFY(completeSpy.wait(5000));
+  QSignalSpy selectedResultSpy(controller->selectedResult(), SIGNAL(selectedResultChanged()));
+  QVERIFY(selectedResultSpy.wait(1000));
 }
 
 void SearchViewFuncTest::activeSource_1_2_1()
@@ -81,7 +89,7 @@ void SearchViewFuncTest::activeSource_1_2_1()
   QVERIFY(controller->activeSource()->displayName() == "Simple Locator");
   connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
           {
-            qDebug() << controller->results()->rowCount();
+            //qDebug() << controller->results()->rowCount();
             //            if (searchResults.count() == 0)
             //              VERIFY(false);
             //            else
