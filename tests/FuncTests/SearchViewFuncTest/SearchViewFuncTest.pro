@@ -57,3 +57,4 @@ win32:DEFINES += MSWINDOWS \
 
 # below tools include is not used anymore becuase all the tools implementations are now outdated.
 include($$PWD/../../../uitools/toolkitcpp.pri)
+include($$PWD/../shared.pri)
