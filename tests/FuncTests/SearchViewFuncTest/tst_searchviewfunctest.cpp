@@ -42,23 +42,22 @@ void SearchViewFuncTest::initTestCase()
 void SearchViewFuncTest::acceptSuggestion_1_1_1()
 {
   // failing. results are not added when selected directly from a suggestion. wanted behaviour?
-  m_locatorSource->setDisplayName("Simple Locator");
+  AutoDisconnector ad1(connect(controller, &Esri::ArcGISRuntime::Toolkit::SearchViewController::selectedResultChanged, this, [this]()
+                               {
+                                 QVERIFY(controller->selectedResult() != nullptr);
+                               }));
+  Q_UNUSED(ad1);
 
-  connect(controller, &Esri::ArcGISRuntime::Toolkit::SearchViewController::selectedResultChanged, this, [this]()
-          {
-            QVERIFY(controller->selectedResult() != nullptr);
-          });
-
-  connect(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this]()
-          {
-            qDebug() << "search completed";
-            qDebug() << "# results: ";
-            qDebug() << controller->results()->rowCount();
-            QVERIFY(controller->results()->rowCount() == 1);
-            QVERIFY(controller->selectedResult() != nullptr);
-            QVERIFY(controller->suggestions()->rowCount() == 0);
-          });
-  //Q_UNUSED(ad1);
+  AutoDisconnector ad2(connect(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this]()
+                               {
+                                 qDebug() << "search completed";
+                                 qDebug() << "# results: ";
+                                 qDebug() << controller->results()->rowCount();
+                                 QVERIFY(controller->results()->rowCount() == 1);
+                                 QVERIFY(controller->selectedResult() != nullptr);
+                                 QVERIFY(controller->suggestions()->rowCount() == 0);
+                               }));
+  Q_UNUSED(ad2);
 
   QMetaObject::Connection* connection = new QMetaObject::Connection();
   *connection = connect(controller->suggestions(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this, connection]()
@@ -84,6 +83,8 @@ void SearchViewFuncTest::acceptSuggestion_1_1_1()
 
 void SearchViewFuncTest::activeSource_1_2_1()
 {
+  m_locatorSource->setDisplayName("Simple Locator");
+
   QSignalSpy completeSpy(this, SIGNAL(waitThis()));
   m_locatorSource->setDisplayName("Simple Locator");
   QVERIFY(controller->activeSource()->displayName() == "Simple Locator");
