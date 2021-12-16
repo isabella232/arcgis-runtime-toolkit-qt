@@ -31,7 +31,6 @@ private slots:
 
   void acceptSuggestion_1_1_1();
   void activeSource_1_2_1();
-
   void activeSource_1_2_2();
 
 signals:

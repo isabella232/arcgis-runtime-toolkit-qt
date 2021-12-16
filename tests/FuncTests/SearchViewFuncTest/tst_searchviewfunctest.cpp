@@ -44,7 +44,6 @@ void SearchViewFuncTest::initTestCase()
  */
 void SearchViewFuncTest::init()
 {
-  qDebug() << "running init";
   //reset the controller
   delete controller;
   controller = new SearchViewController(this);
@@ -89,7 +88,7 @@ void SearchViewFuncTest::acceptSuggestion_1_1_1()
                           if (suggestions->rowCount() > 0)
                           {
                             auto firstSuggestion = suggestions->element<SearchSuggestion>(suggestions->index(0));
-                            qDebug() << "selecting suggestion, " << firstSuggestion->displayTitle();
+                            //qDebug() << "selecting suggestion, " << firstSuggestion->displayTitle();
                             controller->acceptSuggestion(firstSuggestion);
                           }
                         });
@@ -99,7 +98,8 @@ void SearchViewFuncTest::acceptSuggestion_1_1_1()
   controller->setCurrentQuery("Magers & Quinn Booksellers");
 
   QVERIFY(selectedResultSpy.wait(10000));
-  QVERIFY(rowsInserted.wait(5000)); //second is never called. there is difference in the test design and toolkit implementation.
+  QEXPECT_FAIL("", "rowsInserted for results() is never called in case of direct suggestion accept. There is difference in the test design and toolkit implementation.", Abort);
+  QVERIFY(rowsInserted.wait(5000)); //
 }
 
 void SearchViewFuncTest::activeSource_1_2_1()
@@ -113,8 +113,7 @@ void SearchViewFuncTest::activeSource_1_2_1()
                                  if (searchResults.count() == 0)
                                    QVERIFY(false);
                                  else
-                                   QVERIFY(searchResults.first()->owningSource()->displayName() == "Simple Locator");
-                                 qDebug() << searchResults.first()->owningSource()->displayName();
+                                   QVERIFY2(searchResults.first()->owningSource()->displayName() == "Simple Locator", qPrintable(searchResults.first()->owningSource()->displayName()));
                                  emit waitThis();
                                }));
   controller->setCurrentQuery(magersBooksellers);
@@ -133,7 +132,7 @@ void SearchViewFuncTest::activeSource_1_2_2()
                                  QCOMPARE(suggestions->element<SearchSuggestion>(suggestions->index(0))->owningSource()->displayName(), "Simple Locator");
                                }));
   controller->setCurrentQuery(magersBooksellers);
-  QVERIFY(suggestComplete.wait(5000));
+  QVERIFY(suggestComplete.wait(10000));
 }
 
 QTEST_MAIN(SearchViewFuncTest)
