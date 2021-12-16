@@ -14,7 +14,7 @@
 using namespace Esri::ArcGISRuntime::Toolkit;
 using namespace Esri::ArcGISRuntime;
 
-/* set all the needed common variables
+/* set all the needed common variables. this signal is run only once at the beginning.
  */
 void SearchViewFuncTest::initTestCase()
 {
@@ -23,20 +23,41 @@ void SearchViewFuncTest::initTestCase()
   const QString apiKey = qgetenv("ARCGIS_RUNTIME_API_KEY");
   Esri::ArcGISRuntime::ArcGISRuntimeEnvironment::setApiKey(apiKey);
 
-  auto mapView = new Esri::ArcGISRuntime::MapQuickView(new Map(BasemapStyle::ArcGISCommunity, this));
-
-  controller = new SearchViewController(this);
-  controller->setGeoView(mapView);
-  controller->sources()->clear();
-  start = std::chrono::system_clock::now();
-  controller->sources()->clear();
+  m_mapView = new Esri::ArcGISRuntime::MapQuickView(new Map(BasemapStyle::ArcGISCommunity, this));
   m_locatorTask = new Esri::ArcGISRuntime::LocatorTask(QUrl("https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer"), nullptr, nullptr);
-  m_locatorSource = new LocatorSearchSource(m_locatorTask);
-  m_locatorTask->setParent(m_locatorSource);
+  QVERIFY(QSignalSpy(m_mapView->map(), SIGNAL(doneLoading(Esri::ArcGISRuntime::Error))).wait());
+  init();
+  //  controller = new SearchViewController(this);
+  //  controller->setGeoView(m_mapView);
+  //  controller->sources()->clear();
+
+  //  m_locatorTask = new Esri::ArcGISRuntime::LocatorTask(QUrl("https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer"), nullptr, nullptr);
+  //  m_locatorSource = new LocatorSearchSource(m_locatorTask);
+  //  m_locatorTask->setParent(m_locatorSource);
+  //  controller->sources()->append(m_locatorSource);
+  //  controller->setActiveSource(m_locatorSource);
+  //  //wait that the map is loaded
+}
+
+/* resetting to inital state everything except m mapview and locatortask. they are being reused since they are not changed too much (viewpoint mostly).
+ * todo: chek that the locatortask doesnt need to be reset as well.
+ */
+void SearchViewFuncTest::init()
+{
+  qDebug() << "running init";
+  //reset the controller
+  delete controller;
+  controller = new SearchViewController(this);
+  controller->setGeoView(m_mapView);
+  controller->sources()->clear();
+
+  LocatorSearchSource* newLocatorSource = new LocatorSearchSource(m_locatorTask);
+  m_locatorTask->setParent(newLocatorSource); //pr.setting new parent to locator task before deleting the current parent (worried about being deleted along with the parent)
+  delete m_locatorSource;
+  m_locatorSource = newLocatorSource;
+
   controller->sources()->append(m_locatorSource);
   controller->setActiveSource(m_locatorSource);
-  //wait that the map is loaded
-  QVERIFY(QSignalSpy(mapView->map(), SIGNAL(doneLoading(Esri::ArcGISRuntime::Error))).wait());
 }
 
 void SearchViewFuncTest::acceptSuggestion_1_1_1()
@@ -51,9 +72,6 @@ void SearchViewFuncTest::acceptSuggestion_1_1_1()
 
   AutoDisconnector ad2(connect(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this]()
                                {
-                                 qDebug() << "search completed";
-                                 qDebug() << "# results: ";
-                                 qDebug() << controller->results()->rowCount();
                                  QVERIFY(controller->results()->rowCount() == 1);
                                  QVERIFY(controller->selectedResult() != nullptr);
                                  QVERIFY(controller->suggestions()->rowCount() == 0);
@@ -75,13 +93,11 @@ void SearchViewFuncTest::acceptSuggestion_1_1_1()
                             controller->acceptSuggestion(firstSuggestion);
                           }
                         });
-  //todo:add rowsInserted spysignal
-  //QSignalSpy completeSpy(controller->suggestions(), SIGNAL(rowsInserted(const QModelIndex&, int, int, QAbstractItemModel::QPrivateSignal)));
 
   QSignalSpy selectedResultSpy(controller, &Esri::ArcGISRuntime::Toolkit::SearchViewController::selectedResultChanged);
   QSignalSpy rowsInserted(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted);
   controller->setCurrentQuery("Magers & Quinn Booksellers");
-  //temporary solution: waiting twice for the rowsInserted connections (emitting waitThis in them)
+
   QVERIFY(selectedResultSpy.wait(10000));
   QVERIFY(rowsInserted.wait(5000)); //second is never called. there is difference in the test design and toolkit implementation.
 }
@@ -90,7 +106,6 @@ void SearchViewFuncTest::activeSource_1_2_1()
 {
   m_locatorSource->setDisplayName("Simple Locator");
   QSignalSpy completeSpy(this, SIGNAL(waitThis()));
-  m_locatorSource->setDisplayName("Simple Locator");
   QVERIFY(controller->activeSource()->displayName() == "Simple Locator");
   AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
                                {
@@ -109,6 +124,16 @@ void SearchViewFuncTest::activeSource_1_2_1()
 
 void SearchViewFuncTest::activeSource_1_2_2()
 {
+  m_locatorSource->setDisplayName("Simple Locator");
+  QSignalSpy suggestComplete(controller->activeSource()->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted);
+  AutoDisconnector ad1(connect(controller->activeSource()->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted, this, [this]()
+                               {
+                                 auto suggestions = this->controller->suggestions();
+                                 QVERIFY(suggestions->rowCount() > 0);
+                                 QCOMPARE(suggestions->element<SearchSuggestion>(suggestions->index(0))->owningSource()->displayName(), "Simple Locator");
+                               }));
+  controller->setCurrentQuery(magersBooksellers);
+  QVERIFY(suggestComplete.wait(5000));
 }
 
 QTEST_MAIN(SearchViewFuncTest)

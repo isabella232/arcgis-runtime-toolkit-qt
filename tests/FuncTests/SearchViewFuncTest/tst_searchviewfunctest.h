@@ -6,6 +6,8 @@
 namespace Esri {
 namespace ArcGISRuntime {
   class LocatorTask;
+  class MapQuickView;
+
   namespace Toolkit {
     class LocatorSearchSource;
     class SearchViewController;
@@ -25,17 +27,21 @@ public:
 
 private slots:
   void initTestCase();
+  void init(); // clearing preset things from previous tests
+
   void acceptSuggestion_1_1_1();
   void activeSource_1_2_1();
+
   void activeSource_1_2_2();
 
 signals:
   void waitThis();
 
 private:
-  Esri::ArcGISRuntime::LocatorTask* m_locatorTask;
-  Esri::ArcGISRuntime::Toolkit::LocatorSearchSource* m_locatorSource;
-  Esri::ArcGISRuntime::Toolkit::SearchViewController* controller;
+  Esri::ArcGISRuntime::LocatorTask* m_locatorTask{nullptr};
+  Esri::ArcGISRuntime::Toolkit::LocatorSearchSource* m_locatorSource{nullptr};
+  Esri::ArcGISRuntime::Toolkit::SearchViewController* controller{nullptr};
+  Esri::ArcGISRuntime::MapQuickView* m_mapView{nullptr};
   std::chrono::system_clock::time_point start;
 };
 
