@@ -36,7 +36,7 @@ void SearchViewFuncTest::initTestCase()
   controller->sources()->append(m_locatorSource);
   controller->setActiveSource(m_locatorSource);
   //wait that the map is loaded
-  QSignalSpy(mapView->map(), SIGNAL(doneLoading(Esri::ArcGISRuntime::Error))).wait(1000);
+  QVERIFY(QSignalSpy(mapView->map(), SIGNAL(doneLoading(Esri::ArcGISRuntime::Error))).wait(1000));
 }
 
 void SearchViewFuncTest::acceptSuggestion_1_1_1()
@@ -45,6 +45,7 @@ void SearchViewFuncTest::acceptSuggestion_1_1_1()
   AutoDisconnector ad1(connect(controller, &Esri::ArcGISRuntime::Toolkit::SearchViewController::selectedResultChanged, this, [this]()
                                {
                                  QVERIFY(controller->selectedResult() != nullptr);
+                                 emit waitThis();
                                }));
   Q_UNUSED(ad1);
 
@@ -56,6 +57,7 @@ void SearchViewFuncTest::acceptSuggestion_1_1_1()
                                  QVERIFY(controller->results()->rowCount() == 1);
                                  QVERIFY(controller->selectedResult() != nullptr);
                                  QVERIFY(controller->suggestions()->rowCount() == 0);
+                                 emit waitThis();
                                }));
   Q_UNUSED(ad2);
 
@@ -64,21 +66,23 @@ void SearchViewFuncTest::acceptSuggestion_1_1_1()
                         {
                           disconnect(*connection);
                           //delete connection;
+                          delete connection;
                           auto suggestions = controller->suggestions();
                           if (suggestions->rowCount() > 0)
                           {
                             auto firstSuggestion = suggestions->element<SearchSuggestion>(suggestions->index(0));
-                            qDebug() << "selecting suggestion, " << firstSuggestion->displaySubtitle();
+                            qDebug() << "selecting suggestion, " << firstSuggestion->displayTitle();
                             controller->acceptSuggestion(firstSuggestion);
                           }
                         });
-  controller->setCurrentQuery("Rome");
+  //todo:add rowsInserted spysignal
+  //QSignalSpy completeSpy(controller->suggestions(), SIGNAL(rowsInserted(const QModelIndex&, int, int, QAbstractItemModel::QPrivateSignal)));
 
-  //waiting for the completed signal. It seems that without waitForSignal, the search function is not completed.
-  QSignalSpy completeSpy(controller->results(), SIGNAL(rowsInserted()));
-  QVERIFY(completeSpy.wait(5000));
-  QSignalSpy selectedResultSpy(controller->selectedResult(), SIGNAL(selectedResultChanged()));
-  QVERIFY(selectedResultSpy.wait(1000));
+  QSignalSpy selectedResultSpy(this, SIGNAL(waitThis()));
+  controller->setCurrentQuery("Magers & Quinn Booksellers");
+  //temporary solution: waiting twice for the rowsInserted connections (emitting waitThis in them)
+  QVERIFY(selectedResultSpy.wait(10000));
+  QVERIFY(selectedResultSpy.wait(5000)); //second is never called. there is difference in the test design and toolkit implementation.
 }
 
 void SearchViewFuncTest::activeSource_1_2_1()
