@@ -36,7 +36,7 @@ void SearchViewFuncTest::initTestCase()
   controller->sources()->append(m_locatorSource);
   controller->setActiveSource(m_locatorSource);
   //wait that the map is loaded
-  QVERIFY(QSignalSpy(mapView->map(), SIGNAL(doneLoading(Esri::ArcGISRuntime::Error))).wait(1000));
+  QVERIFY(QSignalSpy(mapView->map(), SIGNAL(doneLoading(Esri::ArcGISRuntime::Error))).wait());
 }
 
 void SearchViewFuncTest::acceptSuggestion_1_1_1()
@@ -78,32 +78,37 @@ void SearchViewFuncTest::acceptSuggestion_1_1_1()
   //todo:add rowsInserted spysignal
   //QSignalSpy completeSpy(controller->suggestions(), SIGNAL(rowsInserted(const QModelIndex&, int, int, QAbstractItemModel::QPrivateSignal)));
 
-  QSignalSpy selectedResultSpy(this, SIGNAL(waitThis()));
+  QSignalSpy selectedResultSpy(controller, &Esri::ArcGISRuntime::Toolkit::SearchViewController::selectedResultChanged);
+  QSignalSpy rowsInserted(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted);
   controller->setCurrentQuery("Magers & Quinn Booksellers");
   //temporary solution: waiting twice for the rowsInserted connections (emitting waitThis in them)
   QVERIFY(selectedResultSpy.wait(10000));
-  QVERIFY(selectedResultSpy.wait(5000)); //second is never called. there is difference in the test design and toolkit implementation.
+  QVERIFY(rowsInserted.wait(5000)); //second is never called. there is difference in the test design and toolkit implementation.
 }
 
 void SearchViewFuncTest::activeSource_1_2_1()
 {
   m_locatorSource->setDisplayName("Simple Locator");
-
   QSignalSpy completeSpy(this, SIGNAL(waitThis()));
   m_locatorSource->setDisplayName("Simple Locator");
   QVERIFY(controller->activeSource()->displayName() == "Simple Locator");
-  connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
-          {
-            //qDebug() << controller->results()->rowCount();
-            //            if (searchResults.count() == 0)
-            //              VERIFY(false);
-            //            else
-            //              VERIFY(searchResults.first()->owningSource()->displayName() == "Simple Locator");
-            emit waitThis();
-          });
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 qDebug() << searchResults.count();
+                                 if (searchResults.count() == 0)
+                                   QVERIFY(false);
+                                 else
+                                   QVERIFY(searchResults.first()->owningSource()->displayName() == "Simple Locator");
+                                 qDebug() << searchResults.first()->owningSource()->displayName();
+                                 emit waitThis();
+                               }));
   controller->setCurrentQuery(magersBooksellers);
   controller->commitSearch(true);
   QVERIFY(completeSpy.wait());
+}
+
+void SearchViewFuncTest::activeSource_1_2_2()
+{
 }
 
 QTEST_MAIN(SearchViewFuncTest)
