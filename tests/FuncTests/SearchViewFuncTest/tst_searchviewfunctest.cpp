@@ -48,6 +48,7 @@ void SearchViewFuncTest::init()
   delete controller;
   controller = new SearchViewController(this);
   controller->setGeoView(m_mapView);
+  //qDebug() << m_mapView->currentViewpoint(ViewpointType::BoundingGeometry).toJson();
   controller->sources()->clear();
 
   LocatorSearchSource* newLocatorSource = new LocatorSearchSource(m_locatorTask);
@@ -58,6 +59,20 @@ void SearchViewFuncTest::init()
   controller->sources()->append(m_locatorSource);
   controller->setActiveSource(m_locatorSource);
 }
+
+/* clean up all the resources
+ */
+void SearchViewFuncTest::cleanupTestCase()
+{
+  delete m_locatorTask; //delete before than the source.
+  delete m_locatorSource;
+  delete m_mapView;
+  delete controller;
+}
+
+//void SearchViewFuncTest::currentQuery_1_4_1()
+//{
+//}
 
 void SearchViewFuncTest::acceptSuggestion_1_1_1()
 {
@@ -133,6 +148,53 @@ void SearchViewFuncTest::activeSource_1_2_2()
                                }));
   controller->setCurrentQuery(magersBooksellers);
   QVERIFY(suggestComplete.wait(10000));
+}
+
+void SearchViewFuncTest::commitSearch_1_3_1()
+{
+  QCOMPARE(controller->results()->rowCount(), 0);
+}
+
+void SearchViewFuncTest::commitSearch_1_3_2()
+{
+  //QSignalSpy searchComplete(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted);
+  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 QCOMPARE(controller->results()->rowCount(), 0);
+                                 QCOMPARE(searchResults.count(), 0);
+                                 emit waitThis();
+                               }));
+  controller->setCurrentQuery("No results found blah blah blah blah");
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait());
+}
+
+void SearchViewFuncTest::commitSearch_1_3_3()
+{
+  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  //  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+  //                               {
+  //                                 QVERIFY(controller->results()->rowCount() > 0);
+
+  //                                 QCOMPARE(controller->suggestions()->rowCount(), 0);
+  //                                 QCOMPARE(controller->selectedResult(), nullptr);
+  //                                 QCOMPARE(controller->results()->rowCount(), 0);
+  //                                 emit waitThis();
+  //                               }));
+  connect(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this]()
+          {
+            qDebug() << "addoing asda";
+            emit waitThis();
+          });
+  connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+          {
+            qDebug() << "searchcomp;leted";
+            qDebug() << searchResults.count();
+          });
+  controller->setCurrentQuery(magersBooksellers);
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait(1000));
 }
 
 QTEST_MAIN(SearchViewFuncTest)

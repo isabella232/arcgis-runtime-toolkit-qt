@@ -28,10 +28,15 @@ public:
 private slots:
   void initTestCase();
   void init(); // clearing preset things from previous tests
+  void cleanupTestCase();
 
+  //void currentQuery_1_4_1();
+  void commitSearch_1_3_3();
   void acceptSuggestion_1_1_1();
   void activeSource_1_2_1();
   void activeSource_1_2_2();
+  void commitSearch_1_3_1();
+  void commitSearch_1_3_2();
 
 signals:
   void waitThis();
@@ -41,6 +46,7 @@ private:
   Esri::ArcGISRuntime::Toolkit::LocatorSearchSource* m_locatorSource{nullptr};
   Esri::ArcGISRuntime::Toolkit::SearchViewController* controller{nullptr};
   Esri::ArcGISRuntime::MapQuickView* m_mapView{nullptr};
+
   std::chrono::system_clock::time_point start;
 };
 
