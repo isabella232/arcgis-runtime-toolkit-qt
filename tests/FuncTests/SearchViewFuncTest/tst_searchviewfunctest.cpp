@@ -70,10 +70,6 @@ void SearchViewFuncTest::cleanupTestCase()
   delete controller;
 }
 
-//void SearchViewFuncTest::currentQuery_1_4_1()
-//{
-//}
-
 void SearchViewFuncTest::acceptSuggestion_1_1_1()
 {
   // failing. results are not added when selected directly from a suggestion. wanted behaviour?
@@ -157,7 +153,6 @@ void SearchViewFuncTest::commitSearch_1_3_1()
 
 void SearchViewFuncTest::commitSearch_1_3_2()
 {
-  //QSignalSpy searchComplete(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted);
   QSignalSpy searchComplete(this, SIGNAL(waitThis()));
   AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
                                {
@@ -177,7 +172,7 @@ void SearchViewFuncTest::commitSearch_1_3_3()
 
   AutoDisconnector ad1(connect(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this]()
                                {
-                                 QCOMPARE(controller->results()->element<SearchResult*>(controller->results()->index(0)), controller->selectedResult());
+                                 QCOMPARE(controller->results()->element<SearchResult>(controller->results()->index(0)), controller->selectedResult());
                                }));
   AutoDisconnector ad2(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
                                {
@@ -189,6 +184,122 @@ void SearchViewFuncTest::commitSearch_1_3_3()
   QVERIFY(searchComplete.wait());
   QEXPECT_FAIL("", "the test design expects the result to be addded into the results(), but in the Qt implementation, it is only added in the selectedResult()", Abort);
   QVERIFY(rowsInserted.wait(1000));
+}
+
+void SearchViewFuncTest::commitSearch_1_3_4()
+{
+  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+
+  AutoDisconnector ad1(connect(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this]()
+                               {
+                                 QCOMPARE(controller->results()->element<SearchResult>(controller->results()->index(0)), controller->selectedResult());
+                               }));
+  AutoDisconnector ad2(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 QVERIFY(controller->results()->rowCount() > 1);
+                                 QVERIFY(controller->selectedResult() == nullptr);
+                                 emit waitThis();
+                               }));
+  controller->setCurrentQuery(magersQuinn);
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait());
+}
+
+void SearchViewFuncTest::currentQuery_1_4_1()
+{
+  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  QSignalSpy rowsInsertedResults(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted);
+  QSignalSpy rowsInsertedSuggestions(controller->suggestions(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted);
+
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 QCOMPARE(controller->results()->rowCount(), 0);
+                                 QCOMPARE(controller->suggestions()->rowCount(), 0);
+                                 emit waitThis();
+                               }));
+  controller->setCurrentQuery({});
+  controller->commitSearch(true);
+  QVERIFY(!rowsInsertedResults.wait(2000));
+  //don't need to wait, shoudl have been fired while waiting for the results signal.
+  QCOMPARE(rowsInsertedSuggestions.count(), 0);
+  //if the signal was fired while waiting for the previous failing one, it is stored in the count, so check it
+  QVERIFY(searchComplete.count() > 0 || searchComplete.wait());
+}
+
+void SearchViewFuncTest::currentQuery_1_4_2()
+{
+  QSignalSpy rowsInsertedResults(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted);
+  controller->setCurrentQuery(coffee);
+  controller->commitSearch(true);
+  AutoDisconnector ad1(connect(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this]()
+                               {
+                                 QVERIFY(controller->results()->rowCount() > 0);
+                               }));
+
+  QVERIFY(rowsInsertedResults.wait());
+}
+
+void SearchViewFuncTest::currentQuery_1_4_3()
+{
+  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  QSignalSpy rowsRemovedResults(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsRemoved);
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                                 // changing the query after first has been processed.
+                                 controller->setCurrentQuery(QStringLiteral("Coffee in Portland"));
+                               }));
+  controller->setCurrentQuery(coffee);
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait());
+  QEXPECT_FAIL("", "searchview design is different from qt implementation: in qt, after a change of query, the results are not cleared. They are on IOS.", Abort);
+  QVERIFY(rowsRemovedResults.wait());
+}
+
+void SearchViewFuncTest::currentQuery_1_4_4()
+{
+  QSignalSpy suggestComplete(controller->activeSource()->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted);
+
+  AutoDisconnector ad1(connect(controller->activeSource()->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted, this, [this]()
+                               {
+                                 QVERIFY(controller->suggestions()->rowCount() > 0);
+                               }));
+  controller->setCurrentQuery(coffee);
+  QVERIFY(suggestComplete.wait());
+}
+
+void SearchViewFuncTest::currentQuery_1_4_5()
+{
+  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  QSignalSpy rowsRemovedSuggestions(controller->suggestions(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsRemoved);
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                                 // changing the query after first has been processed. This will trigger to remove the suggestions.
+                                 controller->setCurrentQuery(QStringLiteral("Coffee in Portland"));
+                               }));
+
+  controller->setCurrentQuery("Rome");
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait());
+  QVERIFY(rowsRemovedSuggestions.wait());
+}
+
+void SearchViewFuncTest::currentQuery_1_4_7()
+{
+  QSignalSpy selectedResultChanged(controller, &Esri::ArcGISRuntime::Toolkit::SearchViewController::selectedResultChanged);
+  controller->setCurrentQuery(magersBooksellers);
+  controller->commitSearch(true);
+  //wait for first selected result to be set.
+  QVERIFY(selectedResultChanged.wait());
+  controller->setCurrentQuery(QStringLiteral("Hotel"));
+  AutoDisconnector ad1(connect(controller, &Esri::ArcGISRuntime::Toolkit::SearchViewController::selectedResultChanged, this, [this]()
+                               {
+                                 QVERIFY(controller->selectedResult() == nullptr);
+                               }));
+  QEXPECT_FAIL("", "current Qt implementation will not reset the selectedResult when changing the currentQuery", Continue);
+  QVERIFY2(selectedResultChanged.wait() || selectedResultChanged.count() > 1, qPrintable("current selected result title: " + controller->selectedResult()->displayTitle()));
+  selectedResultChanged.wait(1000);
 }
 
 QTEST_MAIN(SearchViewFuncTest)
