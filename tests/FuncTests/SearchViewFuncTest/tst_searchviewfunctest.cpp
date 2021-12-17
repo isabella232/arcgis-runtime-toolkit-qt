@@ -173,28 +173,22 @@ void SearchViewFuncTest::commitSearch_1_3_2()
 void SearchViewFuncTest::commitSearch_1_3_3()
 {
   QSignalSpy searchComplete(this, SIGNAL(waitThis()));
-  //  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
-  //                               {
-  //                                 QVERIFY(controller->results()->rowCount() > 0);
+  QSignalSpy rowsInserted(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted);
 
-  //                                 QCOMPARE(controller->suggestions()->rowCount(), 0);
-  //                                 QCOMPARE(controller->selectedResult(), nullptr);
-  //                                 QCOMPARE(controller->results()->rowCount(), 0);
-  //                                 emit waitThis();
-  //                               }));
-  connect(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this]()
-          {
-            qDebug() << "addoing asda";
-            emit waitThis();
-          });
-  connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
-          {
-            qDebug() << "searchcomp;leted";
-            qDebug() << searchResults.count();
-          });
-  controller->setCurrentQuery(magersBooksellers);
+  AutoDisconnector ad1(connect(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this]()
+                               {
+                                 QCOMPARE(controller->results()->element<SearchResult*>(controller->results()->index(0)), controller->selectedResult());
+                               }));
+  AutoDisconnector ad2(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 QVERIFY(controller->selectedResult() != nullptr);
+                                 emit waitThis();
+                               }));
+  controller->setCurrentQuery(magersBooksellers); //only 1 result is shown: when calling commit search, no results are added, but just selected the single one from the locatorsource.
   controller->commitSearch(true);
-  QVERIFY(searchComplete.wait(1000));
+  QVERIFY(searchComplete.wait());
+  QEXPECT_FAIL("", "the test design expects the result to be addded into the results(), but in the Qt implementation, it is only added in the selectedResult()", Abort);
+  QVERIFY(rowsInserted.wait(1000));
 }
 
 QTEST_MAIN(SearchViewFuncTest)

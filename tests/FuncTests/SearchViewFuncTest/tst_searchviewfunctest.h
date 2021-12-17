@@ -20,6 +20,7 @@ class SearchViewFuncTest : public QObject
   Q_OBJECT
 
   const QString magersBooksellers{QStringLiteral("Magers & Quinn Booksellers")};
+  const QString magersQuinn{QStringLiteral("Magers & Quinn")};
 
 public:
   SearchViewFuncTest() = default;
@@ -31,12 +32,12 @@ private slots:
   void cleanupTestCase();
 
   //void currentQuery_1_4_1();
-  void commitSearch_1_3_3();
   void acceptSuggestion_1_1_1();
   void activeSource_1_2_1();
   void activeSource_1_2_2();
   void commitSearch_1_3_1();
   void commitSearch_1_3_2();
+  void commitSearch_1_3_3();
 
 signals:
   void waitThis();
