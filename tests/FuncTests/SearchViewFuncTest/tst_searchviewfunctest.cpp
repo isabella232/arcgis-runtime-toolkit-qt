@@ -455,13 +455,13 @@ void SearchViewFuncTest::queryCenter_1_7_1()
   QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
   controller->setQueryCenter(portland);
   controller->setCurrentQuery(coffee);
-  connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
-          {
-            emit waitThis();
-            auto geometryResult = searchResults.first()->geoElement()->geometry();
-            auto distanceGeom = GeometryEngine::distanceGeodetic(portland, geometryResult, LinearUnit(LinearUnitId::Meters), AngularUnit(), GeodeticCurveType::Geodesic);
-            QVERIFY(distanceGeom.distance() < 1500.0);
-          });
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                                 auto geometryResult = searchResults.first()->geoElement()->geometry();
+                                 auto distanceGeom = GeometryEngine::distanceGeodetic(portland, geometryResult, LinearUnit(LinearUnitId::Meters), AngularUnit(), GeodeticCurveType::Geodesic);
+                                 QVERIFY(distanceGeom.distance() < 1500.0);
+                               }));
 
   controller->commitSearch(true);
   QVERIFY(searchComplete.wait());
@@ -473,13 +473,128 @@ void SearchViewFuncTest::queryCenter_1_7_2()
   controller->setQueryCenter(edinburgh);
   controller->setCurrentQuery("Restaurants");
 
-  connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                                 auto geometryResult = searchResults.first()->geoElement()->geometry();
+                                 auto distanceGeom = GeometryEngine::distanceGeodetic(edinburgh, geometryResult, LinearUnit(LinearUnitId::Meters), AngularUnit(), GeodeticCurveType::Geodesic);
+                                 QVERIFY(distanceGeom.distance() < 100.0);
+                               }));
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait());
+}
+
+void SearchViewFuncTest::searchResultMode_1_9_1()
+{
+  QVERIFY(controller->resultMode() == SearchViewController::SearchResultMode::Automatic);
+}
+
+void SearchViewFuncTest::searchResultMode_1_9_2()
+{
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+  controller->setResultMode(SearchViewController::SearchResultMode::Single);
+  controller->setCurrentQuery(magersQuinn);
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                                 QEXPECT_FAIL("", "If search outputs a single result, it is automatically selected, but not added to the results genericmodellist", Abort);
+                                 QCOMPARE(controller->results()->rowCount(), 1);
+                               }));
+
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait());
+}
+
+void SearchViewFuncTest::searchResultMode_1_9_3()
+{
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+  controller->setResultMode(SearchViewController::SearchResultMode::Multiple);
+  controller->setCurrentQuery(magersQuinn);
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                                 QVERIFY(controller->results()->rowCount() > 1);
+                               }));
+
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait());
+}
+
+void SearchViewFuncTest::searchResultMode_1_9_4()
+{
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+  auto connection = std::make_shared<QMetaObject::Connection>();
+  *connection = connect(controller->suggestions(), &GenericListModel::rowsInserted, this, [this, connection]()
+                        {
+                          auto suggestions = this->controller->suggestions();
+                          SearchSuggestion *trueCollection = nullptr, *falseCollection = nullptr;
+
+                          for (int i = 0; i < suggestions->rowCount(); ++i)
+                          {
+                            QModelIndex index = suggestions->index(i);
+                            auto s = suggestions->element<SearchSuggestion>(index);
+                            //true collection
+                            if (!trueCollection && s->isCollection())
+                              trueCollection = s;
+                            //false collection
+                            if (!falseCollection && !s->isCollection())
+                              falseCollection = s;
+                          }
+                          if (trueCollection)
+                          {
+                            disconnect(*connection);
+                            controller->acceptSuggestion(trueCollection);
+                          }
+                        });
+  AutoDisconnector ad(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                              {
+                                emit waitThis();
+                                QVERIFY(controller->results()->rowCount() > 1);
+                              }));
+  controller->setResultMode(SearchViewController::SearchResultMode::Automatic);
+  controller->setCurrentQuery(coffee);
+
+  QVERIFY(searchComplete.wait());
+  controller->commitSearch(true);
+}
+
+void SearchViewFuncTest::searchResultMode_1_9_5()
+{
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+  auto connection = std::make_shared<QMetaObject::Connection>();
+  *connection = connect(controller->suggestions(), &GenericListModel::rowsInserted, this, [this, connection]()
+                        {
+                          auto suggestions = this->controller->suggestions();
+                          SearchSuggestion *trueCollection = nullptr, *falseCollection = nullptr;
+
+                          for (int i = 0; i < suggestions->rowCount(); ++i)
+                          {
+                            QModelIndex index = suggestions->index(i);
+                            auto s = suggestions->element<SearchSuggestion>(index);
+                            //true collection
+                            if (!trueCollection && s->isCollection())
+                              trueCollection = s;
+                            //false collection
+                            if (!falseCollection && !s->isCollection())
+                              falseCollection = s;
+                          }
+                          if (falseCollection)
+                          {
+                            disconnect(*connection);
+                            controller->acceptSuggestion(falseCollection);
+                            qDebug() << controller->results()->rowCount();
+                            ;
+                          }
+                        });
+  connect(this->controller, &SearchViewController::selectedResultChanged, this, [this]()
           {
             emit waitThis();
-            auto geometryResult = searchResults.first()->geoElement()->geometry();
-            auto distanceGeom = GeometryEngine::distanceGeodetic(edinburgh, geometryResult, LinearUnit(LinearUnitId::Meters), AngularUnit(), GeodeticCurveType::Geodesic);
-            QVERIFY(distanceGeom.distance() < 100.0);
+            QVERIFY(controller->selectedResult() != nullptr);
+            QEXPECT_FAIL("", "", Abort);
+            QCOMPARE(controller->results()->rowCount(), 1);
           });
+  controller->setResultMode(SearchViewController::SearchResultMode::Automatic);
+  controller->setCurrentQuery("Coffee");
   controller->commitSearch(true);
   QVERIFY(searchComplete.wait());
 }

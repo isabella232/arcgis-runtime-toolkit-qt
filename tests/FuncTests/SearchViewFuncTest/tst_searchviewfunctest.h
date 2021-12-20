@@ -64,6 +64,11 @@ private slots:
   //void queryArea_1_6_5(); //skipped: modify geoview
   void queryCenter_1_7_1();
   void queryCenter_1_7_2();
+  void searchResultMode_1_9_1();
+  void searchResultMode_1_9_2();
+  void searchResultMode_1_9_3();
+  void searchResultMode_1_9_4();
+  void searchResultMode_1_9_5();
 
 signals:
   void waitThis();
