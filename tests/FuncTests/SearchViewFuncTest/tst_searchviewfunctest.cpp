@@ -126,7 +126,7 @@ void SearchViewFuncTest::acceptSuggestion_1_1_1()
 void SearchViewFuncTest::activeSource_1_2_1()
 {
   m_locatorSource->setDisplayName("Simple Locator");
-  QSignalSpy completeSpy(this, SIGNAL(waitThis()));
+  QSignalSpy completeSpy(this, &SearchViewFuncTest::waitThis);
   QVERIFY(controller->activeSource()->displayName() == "Simple Locator");
   AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
                                {
@@ -163,7 +163,7 @@ void SearchViewFuncTest::commitSearch_1_3_1()
 
 void SearchViewFuncTest::commitSearch_1_3_2()
 {
-  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
   AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
                                {
                                  QCOMPARE(controller->results()->rowCount(), 0);
@@ -177,7 +177,7 @@ void SearchViewFuncTest::commitSearch_1_3_2()
 
 void SearchViewFuncTest::commitSearch_1_3_3()
 {
-  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
   QSignalSpy rowsInserted(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted);
 
   AutoDisconnector ad1(connect(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this]()
@@ -198,7 +198,7 @@ void SearchViewFuncTest::commitSearch_1_3_3()
 
 void SearchViewFuncTest::commitSearch_1_3_4()
 {
-  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
 
   AutoDisconnector ad1(connect(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this]()
                                {
@@ -217,7 +217,7 @@ void SearchViewFuncTest::commitSearch_1_3_4()
 
 void SearchViewFuncTest::currentQuery_1_4_1()
 {
-  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
   QSignalSpy rowsInsertedResults(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted);
   QSignalSpy rowsInsertedSuggestions(controller->suggestions(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted);
 
@@ -251,7 +251,7 @@ void SearchViewFuncTest::currentQuery_1_4_2()
 
 void SearchViewFuncTest::currentQuery_1_4_3()
 {
-  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
   QSignalSpy rowsRemovedResults(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsRemoved);
   AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
                                {
@@ -280,7 +280,7 @@ void SearchViewFuncTest::currentQuery_1_4_4()
 
 void SearchViewFuncTest::currentQuery_1_4_5()
 {
-  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
   QSignalSpy rowsRemovedSuggestions(controller->suggestions(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsRemoved);
   AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
                                {
@@ -314,7 +314,7 @@ void SearchViewFuncTest::currentQuery_1_4_7()
 
 void SearchViewFuncTest::isEligibleForRequery_1_5_1()
 {
-  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
   controller->setQueryArea(chippewaFalls);
   if (auto geoview = qobject_cast<GeoView*>(this->controller->geoView()))
     geoview->setViewpoint(chippewaFalls.extent());
@@ -331,7 +331,7 @@ void SearchViewFuncTest::isEligibleForRequery_1_5_1()
 
 void SearchViewFuncTest::isEligibleForRequery_1_5_2()
 {
-  //  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  //  QSignalSpy searchComplete(this, S&SearchViewFuncTest::waitThis);
   //  QSignalSpy isEnabledChanged(controller, &Esri::ArcGISRuntime::Toolkit::SearchViewController::isEligableForRequeryChanged);
 
   //  controller->setQueryArea(chippewaFalls);
@@ -463,6 +463,23 @@ void SearchViewFuncTest::queryCenter_1_7_1()
             QVERIFY(distanceGeom.distance() < 1500.0);
           });
 
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait());
+}
+
+void SearchViewFuncTest::queryCenter_1_7_2()
+{
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+  controller->setQueryCenter(edinburgh);
+  controller->setCurrentQuery("Restaurants");
+
+  connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+          {
+            emit waitThis();
+            auto geometryResult = searchResults.first()->geoElement()->geometry();
+            auto distanceGeom = GeometryEngine::distanceGeodetic(edinburgh, geometryResult, LinearUnit(LinearUnitId::Meters), AngularUnit(), GeodeticCurveType::Geodesic);
+            QVERIFY(distanceGeom.distance() < 100.0);
+          });
   controller->commitSearch(true);
   QVERIFY(searchComplete.wait());
 }
