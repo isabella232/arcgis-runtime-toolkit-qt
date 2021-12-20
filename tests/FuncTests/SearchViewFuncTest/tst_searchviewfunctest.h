@@ -69,6 +69,9 @@ private slots:
   void searchResultMode_1_9_3();
   void searchResultMode_1_9_4();
   void searchResultMode_1_9_5();
+  void maximumResults_2_1_1();
+  void maximumResults_2_1_2();
+  void maximumResults_2_1_3();
 
 signals:
   void waitThis();

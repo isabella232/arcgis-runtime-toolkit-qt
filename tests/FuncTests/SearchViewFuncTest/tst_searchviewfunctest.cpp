@@ -599,4 +599,38 @@ void SearchViewFuncTest::searchResultMode_1_9_5()
   QVERIFY(searchComplete.wait());
 }
 
+void SearchViewFuncTest::maximumResults_2_1_1()
+{
+  m_locatorSource->setMaximumResults(4);
+  QCOMPARE(m_locatorSource->maximumResults(), 4);
+}
+
+void SearchViewFuncTest::maximumResults_2_1_2()
+{
+  m_locatorSource->setMaximumResults(4);
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+  AutoDisconnector ad1(connect(m_locatorSource, &SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                                 QCOMPARE(searchResults.count(), 4);
+                               }));
+  m_locatorSource->search(coffee);
+  QVERIFY(searchComplete.wait());
+}
+
+void SearchViewFuncTest::maximumResults_2_1_3()
+{
+  m_locatorSource->setMaximumResults(4);
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+  AutoDisconnector ad1(connect(m_locatorSource, &SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                                 QCOMPARE(searchResults.count(), 12);
+                               }));
+  m_locatorSource->search(coffee);
+  m_locatorSource->setMaximumResults(12);
+  m_locatorSource->search("Restaurant");
+  QVERIFY(searchComplete.wait());
+}
+
 QTEST_MAIN(SearchViewFuncTest)
