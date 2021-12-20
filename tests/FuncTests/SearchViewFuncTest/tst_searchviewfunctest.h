@@ -1,6 +1,8 @@
 #ifndef TST_SEARCHVIEWFUNCTEST_H
 #define TST_SEARCHVIEWFUNCTEST_H
 
+#include "PolygonBuilder.h"
+
 #include <QtTest>
 
 namespace Esri {
@@ -24,6 +26,10 @@ class SearchViewFuncTest : public QObject
   const QString magersQuinn{QStringLiteral("Magers & Quinn")};
   const QString coffee{QStringLiteral("Coffee")};
 
+  //data
+  Esri::ArcGISRuntime::Polygon chippewaFalls;
+  Esri::ArcGISRuntime::Polygon minneapolis;
+
 public:
   SearchViewFuncTest() = default;
   ~SearchViewFuncTest() = default;
@@ -46,6 +52,9 @@ private slots:
   void currentQuery_1_4_4();
   void currentQuery_1_4_5();
   void currentQuery_1_4_7();
+  void isEligibleForRequery_1_5_1();
+  void isEligibleForRequery_1_5_2();
+  void isEligibleForRequery_1_5_3();
 
 signals:
   void waitThis();
@@ -57,6 +66,8 @@ private:
   Esri::ArcGISRuntime::MapQuickView* m_mapView{nullptr};
 
   std::chrono::system_clock::time_point start;
+
+  void setDataTests();
 };
 
 #endif // TST_SEARCHVIEWFUNCTEST_H

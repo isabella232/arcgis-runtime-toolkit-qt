@@ -2,6 +2,7 @@
 #include "tst_searchviewfunctest.h"
 
 #include "AutoDisconnector.h"
+#include "EnvelopeBuilder.h"
 #include "LocatorSearchSource.h"
 #include "LocatorTask.h"
 #include "Map.h"
@@ -27,16 +28,7 @@ void SearchViewFuncTest::initTestCase()
   m_locatorTask = new Esri::ArcGISRuntime::LocatorTask(QUrl("https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer"), nullptr, nullptr);
   QVERIFY(QSignalSpy(m_mapView->map(), SIGNAL(doneLoading(Esri::ArcGISRuntime::Error))).wait());
   init();
-  //  controller = new SearchViewController(this);
-  //  controller->setGeoView(m_mapView);
-  //  controller->sources()->clear();
-
-  //  m_locatorTask = new Esri::ArcGISRuntime::LocatorTask(QUrl("https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer"), nullptr, nullptr);
-  //  m_locatorSource = new LocatorSearchSource(m_locatorTask);
-  //  m_locatorTask->setParent(m_locatorSource);
-  //  controller->sources()->append(m_locatorSource);
-  //  controller->setActiveSource(m_locatorSource);
-  //  //wait that the map is loaded
+  setDataTests();
 }
 
 /* resetting to inital state everything except m mapview and locatortask. they are being reused since they are not changed too much (viewpoint mostly).
@@ -48,7 +40,6 @@ void SearchViewFuncTest::init()
   delete controller;
   controller = new SearchViewController(this);
   controller->setGeoView(m_mapView);
-  //qDebug() << m_mapView->currentViewpoint(ViewpointType::BoundingGeometry).toJson();
   controller->sources()->clear();
 
   LocatorSearchSource* newLocatorSource = new LocatorSearchSource(m_locatorTask);
@@ -68,6 +59,25 @@ void SearchViewFuncTest::cleanupTestCase()
   delete m_locatorSource;
   delete m_mapView;
   delete controller;
+}
+
+void SearchViewFuncTest::setDataTests()
+{
+  auto sr(SpatialReference::wgs84());
+  PolygonBuilder builder(sr, this);
+  builder.addPoint(Point(-91.59127653822401, 44.74770908213401, sr));
+  builder.addPoint(Point(-91.19322516572637, 44.74770908213401, sr));
+  builder.addPoint(Point(-91.19322516572637, 45.116100854348254, sr));
+  builder.addPoint(Point(-91.19322516572637, 45.116100854348254, sr));
+  chippewaFalls = Polygon(builder.toGeometry());
+
+  //minneapolis
+  PolygonBuilder builderminn(sr, this);
+  builderminn.addPoint(Point(-94.170821328662, 44.13656401114444, sr));
+  builderminn.addPoint(Point(-94.170821328662, 44.13656401114444, sr));
+  builderminn.addPoint(Point(-92.34544467133114, 45.824325577904446, sr));
+  builderminn.addPoint(Point(-92.34544467133114, 45.824325577904446, sr));
+  minneapolis = Polygon(builderminn.toGeometry());
 }
 
 void SearchViewFuncTest::acceptSuggestion_1_1_1()
@@ -300,6 +310,73 @@ void SearchViewFuncTest::currentQuery_1_4_7()
   QEXPECT_FAIL("", "current Qt implementation will not reset the selectedResult when changing the currentQuery", Continue);
   QVERIFY2(selectedResultChanged.wait() || selectedResultChanged.count() > 1, qPrintable("current selected result title: " + controller->selectedResult()->displayTitle()));
   selectedResultChanged.wait(1000);
+}
+
+void SearchViewFuncTest::isEligibleForRequery_1_5_1()
+{
+  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  controller->setQueryArea(chippewaFalls);
+  if (auto geoview = qobject_cast<GeoView*>(this->controller->geoView()))
+    geoview->setViewpoint(chippewaFalls.extent());
+  controller->setCurrentQuery(coffee);
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                               }));
+
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait());
+  QCOMPARE(controller->isEligableForRequery(), false);
+}
+
+void SearchViewFuncTest::isEligibleForRequery_1_5_2()
+{
+  QSignalSpy searchComplete(this, SIGNAL(waitThis()));
+  QSignalSpy isEnabledChanged(controller, &Esri::ArcGISRuntime::Toolkit::SearchViewController::isEligableForRequeryChanged);
+
+  controller->setQueryArea(chippewaFalls);
+  auto geoview = qobject_cast<GeoView*>(this->controller->geoView());
+  geoview->setViewpoint(chippewaFalls.extent());
+  controller->setCurrentQuery(coffee);
+  //auto enveBuilder = std::make_shared<EnvelopeBuilder>(chippewaFalls.extent(), this);
+  EnvelopeBuilder* enveBuilder = new EnvelopeBuilder(chippewaFalls.extent(), this);
+  auto geoQuickView = qobject_cast<MapQuickView*>(this->controller->geoView());
+
+  connect(geoQuickView, &Esri::ArcGISRuntime::MapQuickView::viewpointChanged, this, []()
+          {
+            qDebug() << "changed";
+          });
+
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this, enveBuilder, geoview](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 QSignalSpy viewpointChanged(m_mapView, &Esri::ArcGISRuntime::MapQuickView::viewpointChanged);
+                                 emit waitThis();
+                                 //qDebug() << enveBuilder->toEnvelope().toJson();
+                                 enveBuilder->expandByFactor(10.0);
+
+                                 qDebug() << "setting the viuewqpoitn";
+
+                                 qDebug() << enveBuilder->toEnvelope().toJson();
+                                 geoview->setViewpoint(enveBuilder->toEnvelope());
+                                 QVERIFY(viewpointChanged.wait());
+                               }));
+
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait(15000));
+  //QTest::qWait(10000);
+
+  //QVERIFY(viewpointChanged.count() > 1);
+  QCOMPARE(controller->isEligableForRequery(), false);
+}
+
+void SearchViewFuncTest::isEligibleForRequery_1_5_3()
+{
+  controller->setQueryArea(chippewaFalls);
+  auto geoview = qobject_cast<GeoView*>(this->controller->geoView());
+  geoview->setViewpoint(chippewaFalls.extent());
+  controller->setCurrentQuery(coffee);
+  auto enveBuilder = std::make_shared<EnvelopeBuilder>(chippewaFalls.extent(), this);
+  enveBuilder->expandByFactor(50);
 }
 
 QTEST_MAIN(SearchViewFuncTest)
