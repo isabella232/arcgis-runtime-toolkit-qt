@@ -29,6 +29,8 @@ class SearchViewFuncTest : public QObject
   //data
   Esri::ArcGISRuntime::Polygon chippewaFalls;
   Esri::ArcGISRuntime::Polygon minneapolis;
+  Esri::ArcGISRuntime::Point portland;
+  Esri::ArcGISRuntime::Point edinburgh;
 
 public:
   SearchViewFuncTest() = default;
@@ -55,6 +57,12 @@ private slots:
   void isEligibleForRequery_1_5_1();
   void isEligibleForRequery_1_5_2();
   void isEligibleForRequery_1_5_3();
+  void queryArea_1_6_1();
+  void queryArea_1_6_2();
+  void queryArea_1_6_3();
+  void queryArea_1_6_4();
+  //void queryArea_1_6_5(); //skipped: modify geoview
+  void queryCenter_1_7_1();
 
 signals:
   void waitThis();

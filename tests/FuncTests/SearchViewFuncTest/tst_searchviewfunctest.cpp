@@ -3,6 +3,7 @@
 
 #include "AutoDisconnector.h"
 #include "EnvelopeBuilder.h"
+#include "GeometryEngine.h"
 #include "LocatorSearchSource.h"
 #include "LocatorTask.h"
 #include "Map.h"
@@ -74,6 +75,9 @@ void SearchViewFuncTest::setDataTests()
   builderminn.addPoint(Point(-92.34544467133114, 45.824325577904446, sr));
   builderminn.addPoint(Point(-92.34544467133114, 45.824325577904446, sr));
   minneapolis = Polygon(builderminn.toGeometry());
+
+  portland = Point(-122.658722, 45.512230, sr);
+  edinburgh = Point(-3.188267, 55.953251, sr);
 }
 
 void SearchViewFuncTest::acceptSuggestion_1_1_1()
@@ -367,12 +371,100 @@ void SearchViewFuncTest::isEligibleForRequery_1_5_2()
 
 void SearchViewFuncTest::isEligibleForRequery_1_5_3()
 {
+  //  controller->setQueryArea(chippewaFalls);
+  //  auto geoview = qobject_cast<GeoView*>(this->controller->geoView());
+  //  geoview->setViewpoint(chippewaFalls.extent());
+  //  controller->setCurrentQuery(coffee);
+  //  auto enveBuilder = std::make_shared<EnvelopeBuilder>(chippewaFalls.extent(), this);
+  //  enveBuilder->expandByFactor(50);
+}
+
+void SearchViewFuncTest::queryArea_1_6_1()
+{
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+  m_locatorSource->setMaximumResults(std::numeric_limits<int>::max());
   controller->setQueryArea(chippewaFalls);
-  auto geoview = qobject_cast<GeoView*>(this->controller->geoView());
-  geoview->setViewpoint(chippewaFalls.extent());
   controller->setCurrentQuery(coffee);
-  auto enveBuilder = std::make_shared<EnvelopeBuilder>(chippewaFalls.extent(), this);
-  enveBuilder->expandByFactor(50);
+
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                                 QVERIFY(controller->results()->rowCount() > 0);
+                               }));
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait());
+}
+
+void SearchViewFuncTest::queryArea_1_6_2()
+{
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+  m_locatorSource->setMaximumResults(std::numeric_limits<int>::max());
+  controller->setQueryArea(chippewaFalls);
+  controller->setCurrentQuery(coffee);
+
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                                 QList<Geometry> l;
+                                 for (auto result : searchResults)
+                                 {
+                                   l.append(result->geoElement()->geometry());
+                                 }
+                                 qDebug() << searchResults.count();
+                                 QVERIFY(GeometryEngine::contains(GeometryEngine::unionOf(l), this->controller->queryArea()));
+                               }));
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait());
+}
+
+void SearchViewFuncTest::queryArea_1_6_3()
+{
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+  controller->setQueryArea(chippewaFalls);
+  controller->setCurrentQuery(magersBooksellers);
+
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                                 QCOMPARE(controller->results()->rowCount(), 0);
+                               }));
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait());
+}
+
+void SearchViewFuncTest::queryArea_1_6_4()
+{
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+  controller->setQueryArea(minneapolis);
+  controller->setCurrentQuery(magersBooksellers);
+
+  AutoDisconnector ad1(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                                 qDebug() << searchResults.count();
+                                 QCOMPARE(searchResults.count(), 1);
+                                 QEXPECT_FAIL("", "If search outputs a single result, it is automatically selected, but not added to the results genericmodellist", Abort);
+                                 QCOMPARE(controller->results()->rowCount(), 1);
+                               }));
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait());
+}
+
+void SearchViewFuncTest::queryCenter_1_7_1()
+{
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+  controller->setQueryCenter(portland);
+  controller->setCurrentQuery(coffee);
+  connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+          {
+            emit waitThis();
+            auto geometryResult = searchResults.first()->geoElement()->geometry();
+            auto distanceGeom = GeometryEngine::distanceGeodetic(portland, geometryResult, LinearUnit(LinearUnitId::Meters), AngularUnit(), GeodeticCurveType::Geodesic);
+            QVERIFY(distanceGeom.distance() < 1500.0);
+          });
+
+  controller->commitSearch(true);
+  QVERIFY(searchComplete.wait());
 }
 
 QTEST_MAIN(SearchViewFuncTest)
