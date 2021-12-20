@@ -72,6 +72,10 @@ private slots:
   void maximumResults_2_1_1();
   void maximumResults_2_1_2();
   void maximumResults_2_1_3();
+  void maximumSuggestions_2_2_1();
+  void maximumSuggestions_2_2_2();
+  void maximumSuggestions_2_2_3();
+  void maximumSuggestions_2_2_4();
 
 signals:
   void waitThis();

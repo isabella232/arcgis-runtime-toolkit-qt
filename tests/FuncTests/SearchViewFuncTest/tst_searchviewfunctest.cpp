@@ -622,15 +622,76 @@ void SearchViewFuncTest::maximumResults_2_1_3()
 {
   m_locatorSource->setMaximumResults(4);
   QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+
+  m_locatorSource->search(coffee);
+
+  { // inner scope to automatically destroy the connection after the successful qverify check
+    AutoDisconnector ad1(connect(m_locatorSource, &SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                                 {
+                                   emit waitThis();
+                                 }));
+
+    QVERIFY(searchComplete.wait()); //consume first search call
+  }
   AutoDisconnector ad1(connect(m_locatorSource, &SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
                                {
                                  emit waitThis();
                                  QCOMPARE(searchResults.count(), 12);
                                }));
-  m_locatorSource->search(coffee);
   m_locatorSource->setMaximumResults(12);
   m_locatorSource->search("Restaurant");
   QVERIFY(searchComplete.wait());
+}
+
+void SearchViewFuncTest::maximumSuggestions_2_2_1()
+{
+  m_locatorSource->setMaximumSuggestions(4);
+  QCOMPARE(m_locatorSource->maximumSuggestions(), 4);
+}
+
+void SearchViewFuncTest::maximumSuggestions_2_2_2()
+{
+  m_locatorSource->setMaximumSuggestions(4);
+  QSignalSpy suggestComplete(m_locatorSource->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted);
+  AutoDisconnector ad1(connect(m_locatorSource->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted, this, [this]()
+                               {
+                                 QCOMPARE(m_locatorSource->suggestions()->rowCount(), 4);
+                               }));
+  m_locatorSource->suggestions()->setSearchText(coffee);
+  QVERIFY(suggestComplete.wait());
+}
+
+void SearchViewFuncTest::maximumSuggestions_2_2_3()
+{
+  QSignalSpy suggestComplete(m_locatorSource->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted);
+  m_locatorSource->setMaximumSuggestions(4);
+  m_locatorSource->suggestions()->setSearchText(coffee);
+
+  m_locatorSource->setMaximumSuggestions(12);
+  QVERIFY(suggestComplete.wait()); //consume first suggest call
+
+  m_locatorSource->suggestions()->setSearchText(coffee);
+  AutoDisconnector ad1(connect(m_locatorSource->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted, this, [this]()
+                               {
+                                 QCOMPARE(m_locatorSource->suggestions()->rowCount(), 12);
+                               }));
+  QVERIFY(suggestComplete.wait());
+}
+
+void SearchViewFuncTest::maximumSuggestions_2_2_4()
+{
+  QSignalSpy suggestComplete(m_locatorSource->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted);
+  auto sp = Esri::ArcGISRuntime::SuggestParameters();
+  sp.setMaxResults(2);
+  m_locatorSource->suggestions()->setSuggestParameters(sp);
+  QVERIFY(m_locatorSource->maximumSuggestions());
+
+  AutoDisconnector ad1(connect(m_locatorSource->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted, this, [this]()
+                               {
+                                 QCOMPARE(m_locatorSource->suggestions()->rowCount(), 2);
+                               }));
+  m_locatorSource->suggestions()->setSearchText(coffee);
+  QVERIFY(suggestComplete.wait());
 }
 
 QTEST_MAIN(SearchViewFuncTest)
