@@ -63,7 +63,6 @@ private:
   Esri::ArcGISRuntime::LocatorTask* m_locatorTask{nullptr};
   Esri::ArcGISRuntime::Toolkit::LocatorSearchSource* m_locatorSource{nullptr};
   Esri::ArcGISRuntime::Toolkit::SearchViewController* controller{nullptr};
-  Esri::ArcGISRuntime::MapQuickView* m_mapView{nullptr};
 
   std::chrono::system_clock::time_point start;
 
