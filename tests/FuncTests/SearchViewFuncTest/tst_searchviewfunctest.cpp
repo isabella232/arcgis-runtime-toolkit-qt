@@ -726,24 +726,52 @@ void SearchViewFuncTest::repeatSearchResultThreshold_3_1_2()
   AutoDisconnector ad1(connect(
       locatorSource, &SmartLocatorSearchSource::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
       {
+        // emitting this signal so it can queried multiple times from the qtry_verify
         emit waitThisReturn(searchResults.count() > 1);
       }));
   locatorSource->setRepeatSearchResultThreshold(1);
   locatorSource->search("Dunkin' Donuts", edinburghArea);
-  QTRY_VERIFY(searchComplete.takeLast().at(0) == true);
-  //todo complete this test: keep checking the qtry codition until a true condition is found.
+  QVERIFY(searchComplete.wait()); // making sure the signal is emitted at least once
+  QTRY_COMPARE(searchComplete.last().at(0).toBool(), true);
 }
 
 void SearchViewFuncTest::repeatSuggestResultThreshold_3_2_1()
 {
+  QSKIP("failing test. need to check how the setsearcharea works with the suggestions. at the moment if modify setsearchtext to hotel, no suggestions are shown");
   auto locatorSource = new SmartLocatorSearchSource(m_locatorTask);
-  // todo: set the area for the suggestion
-  //locatorSource->suggestions()->setSearchText()
+  QSignalSpy suggestComplete(locatorSource->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted);
+  auto param = locatorSource->suggestions()->suggestParameters();
+  param.setSearchArea(edinburghArea);
+  locatorSource->suggestions()->setSuggestParameters(param);
+  AutoDisconnector ad1(connect(locatorSource->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted, this, [locatorSource]()
+                               {
+                                 QCOMPARE(locatorSource->suggestions()->rowCount(), 0);
+                               }));
+  locatorSource->setRepeatSuggestResultThreshold(0);
+  locatorSource->suggestions()->setSearchText("Dunkin' Donuts");
+  QVERIFY(suggestComplete.wait());
 }
 
 void SearchViewFuncTest::repeatSuggestResultThreshold_3_2_2()
 {
-  //todo: create the test
+  QSKIP("failing test. need to check how the setsearcharea works with the suggestions. at the moment if modify setsearchtext to hotel, no suggestions are shown");
+  auto locatorSource = new SmartLocatorSearchSource(m_locatorTask);
+  m_locatorTask->setParent(locatorSource);
+  //QSignalSpy (locatorSource->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted);
+  QSignalSpy suggestComplete(this, &SearchViewFuncTest::waitThisReturn);
+  auto param = locatorSource->suggestions()->suggestParameters();
+  param.setSearchArea(edinburghArea);
+  m_locatorTask->suggestions()->setSuggestParameters(param);
+  //locatorSource->suggestions()->setSuggestParameters(param);
+  AutoDisconnector ad1(connect(locatorSource->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted, this, [this, locatorSource]()
+                               {
+                                 qDebug() << locatorSource->suggestions()->rowCount();
+                                 emit waitThisReturn(locatorSource->suggestions()->rowCount() > 0);
+                               }));
+  locatorSource->setRepeatSuggestResultThreshold(1);
+  locatorSource->suggestions()->setSearchText("Hotel");
+  QVERIFY(suggestComplete.wait());
+  QTRY_COMPARE(suggestComplete.last().at(0).toBool(), true);
 }
 
 void SearchViewFuncTest::offlineLocator_3_3_1()
