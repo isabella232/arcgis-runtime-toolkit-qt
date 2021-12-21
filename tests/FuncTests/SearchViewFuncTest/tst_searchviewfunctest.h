@@ -1,6 +1,7 @@
 #ifndef TST_SEARCHVIEWFUNCTEST_H
 #define TST_SEARCHVIEWFUNCTEST_H
 
+#include "Envelope.h"
 #include "PolygonBuilder.h"
 
 #include <QtTest>
@@ -31,6 +32,7 @@ class SearchViewFuncTest : public QObject
   Esri::ArcGISRuntime::Polygon minneapolis;
   Esri::ArcGISRuntime::Point portland;
   Esri::ArcGISRuntime::Point edinburgh;
+  Esri::ArcGISRuntime::Envelope edinburghArea;
 
 public:
   SearchViewFuncTest() = default;
@@ -76,9 +78,16 @@ private slots:
   void maximumSuggestions_2_2_2();
   void maximumSuggestions_2_2_3();
   void maximumSuggestions_2_2_4();
+  void repeatSearchResultThreshold_3_1_1();
+  void repeatSearchResultThreshold_3_1_2();
+  void repeatSuggestResultThreshold_3_2_1();
+  void repeatSuggestResultThreshold_3_2_2();
+  void offlineLocator_3_3_1();
+  void offlineLocator_3_3_2();
 
 signals:
   void waitThis();
+  void waitThisReturn(bool);
 
 private:
   Esri::ArcGISRuntime::LocatorTask* m_locatorTask{nullptr};

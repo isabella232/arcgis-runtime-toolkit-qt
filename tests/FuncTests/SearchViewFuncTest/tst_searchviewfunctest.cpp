@@ -10,6 +10,7 @@
 #include "MapGraphicsView.h"
 #include "MapQuickView.h"
 #include "SearchViewController.h"
+#include "SmartLocatorSearchSource.h"
 
 #include <ArcGISRuntimeEnvironment.h>
 
@@ -78,6 +79,8 @@ void SearchViewFuncTest::setDataTests()
 
   portland = Point(-122.658722, 45.512230, sr);
   edinburgh = Point(-3.188267, 55.953251, sr);
+
+  edinburghArea = Esri::ArcGISRuntime::Envelope(-365155.60783391213, 7536778.456812576, -347494.47622280417, 7559866.706991681);
 }
 
 void SearchViewFuncTest::acceptSuggestion_1_1_1()
@@ -692,6 +695,103 @@ void SearchViewFuncTest::maximumSuggestions_2_2_4()
                                }));
   m_locatorSource->suggestions()->setSearchText(coffee);
   QVERIFY(suggestComplete.wait());
+}
+
+void SearchViewFuncTest::repeatSearchResultThreshold_3_1_1()
+{
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+  auto locatorSource = new SmartLocatorSearchSource(m_locatorTask);
+  // not setting the parent, for not automatically reset after this test
+  controller->sources()->clear();
+  controller->sources()->append(locatorSource);
+  controller->setActiveSource(locatorSource);
+  AutoDisconnector ad1(connect(controller->activeSource(), &SmartLocatorSearchSource::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                                 QCOMPARE(searchResults.count(), 0);
+                               }));
+  locatorSource->setRepeatSearchResultThreshold(0);
+  locatorSource->search("Dunkin' Donuts", edinburghArea);
+  QVERIFY(searchComplete.wait());
+}
+
+void SearchViewFuncTest::repeatSearchResultThreshold_3_1_2()
+{
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThisReturn);
+  auto locatorSource = new SmartLocatorSearchSource(m_locatorTask);
+  // not setting the parent, for not automatically reset after this test
+  controller->sources()->clear();
+  controller->sources()->append(locatorSource);
+  controller->setActiveSource(locatorSource);
+  AutoDisconnector ad1(connect(
+      locatorSource, &SmartLocatorSearchSource::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+      {
+        emit waitThisReturn(searchResults.count() > 1);
+      }));
+  locatorSource->setRepeatSearchResultThreshold(1);
+  locatorSource->search("Dunkin' Donuts", edinburghArea);
+  QTRY_VERIFY(searchComplete.takeLast().at(0) == true);
+  //todo complete this test: keep checking the qtry codition until a true condition is found.
+}
+
+void SearchViewFuncTest::repeatSuggestResultThreshold_3_2_1()
+{
+  auto locatorSource = new SmartLocatorSearchSource(m_locatorTask);
+  // todo: set the area for the suggestion
+  //locatorSource->suggestions()->setSearchText()
+}
+
+void SearchViewFuncTest::repeatSuggestResultThreshold_3_2_2()
+{
+  //todo: create the test
+}
+
+void SearchViewFuncTest::offlineLocator_3_3_1()
+{
+  QString dataPath(QDir::homePath() + "/ArcGIS/Runtime/Data/");
+  qDebug() << QDir::homePath();
+  qDebug() << dataPath + "Locators/SanDiegoStreetAddressLocator/SanDiego_StreetAddress.loc";
+  QFile f(dataPath + "Locators/SanDiegoStreetAddressLocator/SanDiego_StreetAddress.loc");
+  qDebug() << "file exists: ";
+  qDebug() << f.exists();
+
+  auto locatorTask = std::make_shared<Esri::ArcGISRuntime::LocatorTask>(dataPath + "Locators/SanDiegoStreetAddressLocator/SanDiego_StreetAddress.loc", this);
+  auto locatorSource = std::make_shared<SmartLocatorSearchSource>(locatorTask.get());
+  QSignalSpy suggestComplete(locatorSource->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted);
+  //locatorTask->setParent(locatorSource.get());
+  controller->sources()->append(locatorSource.get());
+  controller->setActiveSource(locatorSource.get());
+  AutoDisconnector ad1(connect(locatorSource->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted, this, [locatorSource]()
+                               {
+                                 QCOMPARE(locatorSource->suggestions()->rowCount(), 3);
+                               }));
+  locatorSource->suggestions()->setSearchText("Coffee");
+  QVERIFY(suggestComplete.wait());
+}
+
+void SearchViewFuncTest::offlineLocator_3_3_2()
+{
+  QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
+  QString dataPath(QDir::homePath() + "/ArcGIS/Runtime/Data/");
+  qDebug() << QDir::homePath();
+  qDebug() << dataPath + "Locators/SanDiegoStreetAddressLocator/SanDiego_StreetAddress.loc";
+  QFile f(dataPath + "Locators/SanDiegoStreetAddressLocator/SanDiego_StreetAddress.loc");
+  qDebug() << "file exists: ";
+  qDebug() << f.exists();
+
+  auto locatorTask = std::make_shared<Esri::ArcGISRuntime::LocatorTask>(dataPath + "Locators/SanDiegoStreetAddressLocator/SanDiego_StreetAddress.loc", this);
+  auto locatorSource = std::make_shared<SmartLocatorSearchSource>(locatorTask.get());
+  QSignalSpy suggestComplete(locatorSource->suggestions(), &Esri::ArcGISRuntime::SuggestListModel::suggestCompleted);
+  //locatorTask->setParent(locatorSource.get());
+  controller->sources()->append(locatorSource.get());
+  controller->setActiveSource(locatorSource.get());
+  AutoDisconnector ad1(connect(locatorSource.get(), &SmartLocatorSearchSource::searchCompleted, this, [this, locatorSource](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
+                               {
+                                 emit waitThis();
+                                 QCOMPARE(searchResults.count(), 2);
+                               }));
+  locatorSource->search("Hotel");
+  QVERIFY(searchComplete.wait());
 }
 
 QTEST_MAIN(SearchViewFuncTest)
