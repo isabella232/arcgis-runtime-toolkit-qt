@@ -749,11 +749,8 @@ void SearchViewFuncTest::repeatSuggestResultThreshold_3_2_2()
 void SearchViewFuncTest::offlineLocator_3_3_1()
 {
   QString dataPath(QDir::homePath() + "/ArcGIS/Runtime/Data/");
-  qDebug() << QDir::homePath();
-  qDebug() << dataPath + "Locators/SanDiegoStreetAddressLocator/SanDiego_StreetAddress.loc";
   QFile f(dataPath + "Locators/SanDiegoStreetAddressLocator/SanDiego_StreetAddress.loc");
-  qDebug() << "file exists: ";
-  qDebug() << f.exists();
+  QVERIFY2(f.exists(), "offline file locator does not exists");
 
   auto locatorTask = std::make_shared<Esri::ArcGISRuntime::LocatorTask>(dataPath + "Locators/SanDiegoStreetAddressLocator/SanDiego_StreetAddress.loc", this);
   auto locatorSource = std::make_shared<SmartLocatorSearchSource>(locatorTask.get());
@@ -765,7 +762,7 @@ void SearchViewFuncTest::offlineLocator_3_3_1()
                                {
                                  QCOMPARE(locatorSource->suggestions()->rowCount(), 3);
                                }));
-  locatorSource->suggestions()->setSearchText("Coffee");
+  locatorSource->suggestions()->setSearchText(coffee);
   QVERIFY(suggestComplete.wait());
 }
 
@@ -773,11 +770,8 @@ void SearchViewFuncTest::offlineLocator_3_3_2()
 {
   QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
   QString dataPath(QDir::homePath() + "/ArcGIS/Runtime/Data/");
-  qDebug() << QDir::homePath();
-  qDebug() << dataPath + "Locators/SanDiegoStreetAddressLocator/SanDiego_StreetAddress.loc";
   QFile f(dataPath + "Locators/SanDiegoStreetAddressLocator/SanDiego_StreetAddress.loc");
-  qDebug() << "file exists: ";
-  qDebug() << f.exists();
+  QVERIFY2(f.exists(), "offline file locator does not exists");
 
   auto locatorTask = std::make_shared<Esri::ArcGISRuntime::LocatorTask>(dataPath + "Locators/SanDiegoStreetAddressLocator/SanDiego_StreetAddress.loc", this);
   auto locatorSource = std::make_shared<SmartLocatorSearchSource>(locatorTask.get());
