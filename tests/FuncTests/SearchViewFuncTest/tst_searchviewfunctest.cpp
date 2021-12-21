@@ -202,20 +202,24 @@ void SearchViewFuncTest::commitSearch_1_3_3()
 void SearchViewFuncTest::commitSearch_1_3_4()
 {
   QSignalSpy searchComplete(this, &SearchViewFuncTest::waitThis);
-
-  AutoDisconnector ad1(connect(controller->results(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [this]()
+  QSignalSpy rowsRemoved(controller->suggestions(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsRemoved);
+  AutoDisconnector ad1(connect(controller->suggestions(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsRemoved, this, [this]()
                                {
-                                 QCOMPARE(controller->results()->element<SearchResult>(controller->results()->index(0)), controller->selectedResult());
+                                 QCOMPARE(controller->suggestions()->rowCount(), 0);
                                }));
   AutoDisconnector ad2(connect(controller->activeSource(), &Esri::ArcGISRuntime::Toolkit::SearchSourceInterface::searchCompleted, this, [this](QList<Esri::ArcGISRuntime::Toolkit::SearchResult*> searchResults)
                                {
                                  QVERIFY(controller->results()->rowCount() > 1);
                                  QVERIFY(controller->selectedResult() == nullptr);
+                                 //QVERIFY(controller->suggestions()->rowCount() == 0);
                                  emit waitThis();
                                }));
   controller->setCurrentQuery(magersQuinn);
   controller->commitSearch(true);
+
   QVERIFY(searchComplete.wait());
+  QEXPECT_FAIL("", "commit search will not remove the suggestions. it yield a different result compared to using the GUI and pressing enter", Abort);
+  QVERIFY(rowsRemoved.wait(1000) || rowsRemoved.count() > 0);
 }
 
 void SearchViewFuncTest::currentQuery_1_4_1()
