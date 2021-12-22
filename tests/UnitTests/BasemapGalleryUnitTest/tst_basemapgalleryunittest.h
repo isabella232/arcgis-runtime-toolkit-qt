@@ -24,7 +24,8 @@ private slots:
   void initTestCase();
   void cleanupTestCase();
   void ctor_GeoModel();
-  void test1();
+  void ctor_GeoModelPortal();
+  void ctor_GeoModelBasemapGalleryItems();
 
 private:
   Esri::ArcGISRuntime::Map* m_map;

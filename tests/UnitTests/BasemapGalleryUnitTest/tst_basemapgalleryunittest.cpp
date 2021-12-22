@@ -64,10 +64,104 @@ void BasemapGalleryUnitTest::ctor_GeoModel()
   QVERIFY(controller.geoModel()->loadStatus() == LoadStatus::Loaded);
 }
 
-void BasemapGalleryUnitTest::test1()
+//todo: find out how to get the loaded basemaps from the portal and the gallery. atm are not all loaded when checking
+void BasemapGalleryUnitTest::ctor_GeoModelPortal()
 {
-  QSet<QString> set1{"asd", "lol"};
-  QSet<QString> set2{"lol", "asd"};
-  QCOMPARE(set1, set2);
+  BasemapGalleryController controller(this);
+  QSignalSpy geoModelChanged(&controller, &Esri::ArcGISRuntime::Toolkit::BasemapGalleryController::geoModelChanged);
+  controller.setGeoModel(m_map);
+  QVERIFY(geoModelChanged.wait() || geoModelChanged.count() > 0);
+  QCOMPARE(controller.geoModel(), m_map);
+  QCOMPARE(controller.geoModel()->basemap(), m_basemapLightGray);
+  auto portal = std::make_shared<Portal>(QUrl("https://www.arcgis.com"), this);
+  QSignalSpy portalLoaded(portal.get(), &Esri::ArcGISRuntime::Portal::doneLoading);
+  QSignalSpy portalBasemapChanged(portal.get(), &Esri::ArcGISRuntime::Portal::basemapsChanged);
+  QSignalSpy portalDeveloperBasemapChanged(portal.get(), &Esri::ArcGISRuntime::Portal::developerBasemapsChanged);
+  QSignalSpy rowAdded(controller.gallery(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted);
+
+  AutoDisconnector ad1(connect(portal.get(), &Esri::ArcGISRuntime::Portal::doneLoading, this, [](Error loadError)
+                               {
+                                 qDebug() << loadError.message();
+                                 QVERIFY(loadError.isEmpty());
+                               }));
+
+  auto gallery = controller.gallery();
+  AutoDisconnector ad2(connect(controller.gallery(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [gallery]()
+                               {
+                                 auto elem = gallery->element<BasemapGalleryItem>(gallery->index(0));
+                                 qDebug() << "loaded?" << (elem->basemap()->loadStatus() == LoadStatus::Loaded);
+                               }));
+
+  controller.setPortal(portal.get());
+  QVERIFY(portalLoaded.wait() || portalLoaded.count() > 0);
+
+  QVERIFY(portalBasemapChanged.wait());
+  qDebug() << "loaded";
+  int portalBasemapsLength = portal->basemaps()->rowCount();
+  QTRY_COMPARE(rowAdded.count(), portalBasemapsLength); // check the added basemaps in the gallery is same length as the portal basemaps
+  //wait for basemap to be loaded
+  QSignalSpy basemapLoaded(gallery->element<BasemapGalleryItem>(gallery->index(0))->basemap(), &Basemap::loadStatusChanged);
+  QVERIFY(basemapLoaded.wait() || basemapLoaded.count() > 0);
+  qDebug() << rowAdded.count() << " " << portalBasemapsLength;
+  QCOMPARE(controller.portal(), portal.get());
+
+  qDebug() << "gallery: " << gallery->rowCount();
+  qDebug() << "basemaps: " << portal->basemaps()->rowCount();
+  qDebug() << "developers: " << portal->developerBasemaps()->rowCount();
+  for (int row = 0; row < gallery->rowCount(); ++row)
+  {
+    qDebug() << (gallery->element<BasemapGalleryItem>(gallery->index(row))->name());
+  }
+  for (int row = 0; row < portal->basemaps()->rowCount(); ++row)
+  {
+    qDebug() << portal->basemaps()->at(row)->name();
+  }
+  for (int row = 0; row < portal->developerBasemaps()->rowCount(); ++row)
+  {
+    qDebug() << portal->developerBasemaps()->at(row)->name();
+  }
+  //QTest::qWait(5000);
+  qDebug() << "---";
+  for (int row = 0; row < gallery->rowCount(); ++row)
+  {
+    qDebug() << (gallery->element<BasemapGalleryItem>(gallery->index(row))->name());
+  }
 }
+
+void BasemapGalleryUnitTest::ctor_GeoModelBasemapGalleryItems()
+{
+  BasemapGalleryController controller(this);
+  QSignalSpy geoModelChanged(&controller, &Esri::ArcGISRuntime::Toolkit::BasemapGalleryController::geoModelChanged);
+  controller.setGeoModel(m_map);
+
+  QVERIFY(geoModelChanged.wait() || geoModelChanged.count() > 0);
+  //removing all rows (mimick clean gallery state). by waiting the geomodel is loaded, the gallery is loaded as well
+  controller.gallery()->clear();
+  //basemap loaded in the call-stack of append.
+  Basemap* b1 = new Basemap(new PortalItem(QUrl("https://runtime.maps.arcgis.com/home/item.html?id=f33a34de3a294590ab48f246e99958c9")));
+  QSignalSpy b1Loaded(b1, &Basemap::loadStatusChanged);
+  QCOMPARE(controller.gallery()->rowCount(), 0);
+  controller.append(b1);
+  QVERIFY(b1Loaded.wait());
+  Basemap* b2 = new Basemap(new PortalItem(QUrl("https://runtime.maps.arcgis.com/home/item.html?id=46a87c20f09e4fc48fa3c38081e0cae6")));
+  QSignalSpy b2Loaded(b2, &Basemap::loadStatusChanged);
+  controller.append(b2);
+  QVERIFY(b2Loaded.wait());
+  QCOMPARE(controller.currentBasemap(), m_map->basemap());
+  auto gallery = controller.gallery();
+  QSet<QString> setBasemapNames;
+  for (int row = 0; row < gallery->rowCount(); ++row)
+  {
+    QString name = gallery->element<BasemapGalleryItem>(gallery->index(row))->name();
+    QVERIFY(name != "");
+    setBasemapNames.insert(name);
+  }
+  QSet<QString> setBasemapNamesExpected{b1->name(), b2->name()};
+  QCOMPARE(setBasemapNames, setBasemapNamesExpected);
+
+  //free resources
+  delete b1;
+  delete b2;
+}
+
 QTEST_MAIN(BasemapGalleryUnitTest)
