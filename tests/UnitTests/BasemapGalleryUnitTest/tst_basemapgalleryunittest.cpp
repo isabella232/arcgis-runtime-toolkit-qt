@@ -64,7 +64,6 @@ void BasemapGalleryUnitTest::ctor_GeoModel()
   QVERIFY(controller.geoModel()->loadStatus() == LoadStatus::Loaded);
 }
 
-//todo: find out how to get the loaded basemaps from the portal and the gallery. atm are not all loaded when checking
 void BasemapGalleryUnitTest::ctor_GeoModelPortal()
 {
   BasemapGalleryController controller(this);
