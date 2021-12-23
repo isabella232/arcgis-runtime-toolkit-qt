@@ -27,6 +27,9 @@ private slots:
   void ctor_GeoModelPortal();
   void ctor_GeoModelBasemapGalleryItems();
 
+signals:
+  void waitThis();
+
 private:
   Esri::ArcGISRuntime::Map* m_map;
   Esri::ArcGISRuntime::Basemap* m_basemapLightGray;

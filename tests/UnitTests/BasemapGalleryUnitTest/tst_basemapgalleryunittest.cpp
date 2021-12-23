@@ -4,6 +4,7 @@
 #include "Basemap.h"
 #include "BasemapGalleryController.h"
 #include "Map.h"
+#include "SignalSynchronizer.h"
 
 #include <ArcGISRuntimeEnvironment.h>
 using namespace Esri::ArcGISRuntime;
@@ -15,13 +16,11 @@ BasemapGalleryUnitTest::BasemapGalleryUnitTest()
 
 BasemapGalleryUnitTest::~BasemapGalleryUnitTest()
 {
-
 }
 
 void BasemapGalleryUnitTest::initTestCase()
 {
   //setting API key
-
   const QString apiKey = qgetenv("ARCGIS_RUNTIME_API_KEY");
   Esri::ArcGISRuntime::ArcGISRuntimeEnvironment::setApiKey(apiKey);
 
@@ -41,6 +40,7 @@ void BasemapGalleryUnitTest::initTestCase()
 void BasemapGalleryUnitTest::cleanupTestCase()
 {
   delete m_map;
+  delete m_basemapLightGray;
 }
 
 void BasemapGalleryUnitTest::ctor_GeoModel()
@@ -74,58 +74,32 @@ void BasemapGalleryUnitTest::ctor_GeoModelPortal()
   QCOMPARE(controller.geoModel(), m_map);
   QCOMPARE(controller.geoModel()->basemap(), m_basemapLightGray);
   auto portal = std::make_shared<Portal>(QUrl("https://www.arcgis.com"), this);
+
   QSignalSpy portalLoaded(portal.get(), &Esri::ArcGISRuntime::Portal::doneLoading);
   QSignalSpy portalBasemapChanged(portal.get(), &Esri::ArcGISRuntime::Portal::basemapsChanged);
-  QSignalSpy portalDeveloperBasemapChanged(portal.get(), &Esri::ArcGISRuntime::Portal::developerBasemapsChanged);
-  QSignalSpy rowAdded(controller.gallery(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted);
-
-  AutoDisconnector ad1(connect(portal.get(), &Esri::ArcGISRuntime::Portal::doneLoading, this, [](Error loadError)
-                               {
-                                 qDebug() << loadError.message();
-                                 QVERIFY(loadError.isEmpty());
-                               }));
 
   auto gallery = controller.gallery();
-  AutoDisconnector ad2(connect(controller.gallery(), &Esri::ArcGISRuntime::Toolkit::GenericListModel::rowsInserted, this, [gallery]()
-                               {
-                                 auto elem = gallery->element<BasemapGalleryItem>(gallery->index(0));
-                                 qDebug() << "loaded?" << (elem->basemap()->loadStatus() == LoadStatus::Loaded);
-                               }));
-
+  // portal is loaded and basemaps are fetched and loaded by the controller
   controller.setPortal(portal.get());
-  QVERIFY(portalLoaded.wait() || portalLoaded.count() > 0);
+  QVERIFY(portalLoaded.count() > 0 || portalLoaded.wait());
+  QVERIFY(portalBasemapChanged.count() > 0 || portalBasemapChanged.wait());
+  // add all the basemaps signal loadstatuschanged in the signalsync list.
+  SignalSynchronizer signalSync(portal->basemaps()->begin(), portal->basemaps()->end(), &Basemap::loadStatusChanged, this);
+  QSignalSpy signalSyncReady(&signalSync, &SignalSynchronizer::ready);
+  QVERIFY(signalSyncReady.count() > 0 || signalSyncReady.wait());
 
-  QVERIFY(portalBasemapChanged.wait());
-  qDebug() << "loaded";
-  int portalBasemapsLength = portal->basemaps()->rowCount();
-  QTRY_COMPARE(rowAdded.count(), portalBasemapsLength); // check the added basemaps in the gallery is same length as the portal basemaps
-  //wait for basemap to be loaded
-  QSignalSpy basemapLoaded(gallery->element<BasemapGalleryItem>(gallery->index(0))->basemap(), &Basemap::loadStatusChanged);
-  QVERIFY(basemapLoaded.wait() || basemapLoaded.count() > 0);
-  qDebug() << rowAdded.count() << " " << portalBasemapsLength;
   QCOMPARE(controller.portal(), portal.get());
-
-  qDebug() << "gallery: " << gallery->rowCount();
-  qDebug() << "basemaps: " << portal->basemaps()->rowCount();
-  qDebug() << "developers: " << portal->developerBasemaps()->rowCount();
-  for (int row = 0; row < gallery->rowCount(); ++row)
+  size_t basemapsLength = portal->basemaps()->rowCount();
+  QVERIFY(gallery->rowCount() == basemapsLength && basemapsLength > 0);
+  //have to use a set because the gallery items are ordered by name
+  QSet<QString> setBasemapNamesGallery;
+  QSet<QString> setBasemapNamesPortal;
+  for (int row = 0; row < basemapsLength; ++row)
   {
-    qDebug() << (gallery->element<BasemapGalleryItem>(gallery->index(row))->name());
+    setBasemapNamesGallery.insert(gallery->element<BasemapGalleryItem>(gallery->index(row))->name());
+    setBasemapNamesPortal.insert(portal->basemaps()->at(row)->name());
   }
-  for (int row = 0; row < portal->basemaps()->rowCount(); ++row)
-  {
-    qDebug() << portal->basemaps()->at(row)->name();
-  }
-  for (int row = 0; row < portal->developerBasemaps()->rowCount(); ++row)
-  {
-    qDebug() << portal->developerBasemaps()->at(row)->name();
-  }
-  //QTest::qWait(5000);
-  qDebug() << "---";
-  for (int row = 0; row < gallery->rowCount(); ++row)
-  {
-    qDebug() << (gallery->element<BasemapGalleryItem>(gallery->index(row))->name());
-  }
+  QCOMPARE(setBasemapNamesGallery, setBasemapNamesPortal);
 }
 
 void BasemapGalleryUnitTest::ctor_GeoModelBasemapGalleryItems()
