@@ -18,7 +18,11 @@ import Calcite 1.0 as C
 
 Control {
     id: demoPage
+
     property bool handlesOwnAuthentication : false
+    property bool usesApiKey: true
+    property alias apiKey: apiKeyInput.text
+
     enum ViewType {
         Scene,
         Map
@@ -50,7 +54,7 @@ Control {
     signal showToolsButtonPressed()
 
     Component.onCompleted: {
-        if (ArcGISRuntimeEnvironment.apiKey === "") {
+        if (usesApiKey && apiKey === "") {
             apiKeyPopup.open();
         } else {
             apiKeyPopup.resetLoader();
@@ -62,7 +66,7 @@ Control {
     BusyIndicator {
         anchors.centerIn: demoPage
         running: geoModel && geoModel.loadStatus === Enums.LoadStatusLoading
-        visible: running && ArcGISRuntimeEnvironment.apiKey !== ""
+        visible: running && (usesApiKey == false || apiKey !== "")
     }
 
     Dialog {
@@ -72,19 +76,13 @@ Control {
         contentItem: TextField {
             id: apiKeyInput
             placeholderText: "Enter your API Key here."
+            inputMethodHints: Qt.ImhSensitiveData
         }
         anchors.centerIn: demoPage
         standardButtons: Dialog.Ok | Dialog.Cancel
         closePolicy: Popup.NoAutoClose
-        onOpened: {
-            apiKeyInput.text = ArcGISRuntimeEnvironment.apiKey;
-        }
         onAccepted: {
-            const oldKey = ArcGISRuntimeEnvironment.apiKey;
-            ArcGISRuntimeEnvironment.apiKey = apiKeyInput.text.trim();
-            if (oldKey !== ArcGISRuntimeEnvironment.apiKey) {
-                resetLoader();
-            }
+            resetLoader();
         }
         function resetLoader() {
             geoViewLoader.sourceComponent = undefined;
@@ -99,7 +97,6 @@ Control {
             AuthenticationView { }
         }
     }
-
     contentItem: GridLayout {
         id: gridLayout
         columns: 6
@@ -129,7 +126,7 @@ Control {
             autoExclusive: true
             checked: viewType === DemoPage.ViewType.Map
             onClicked: viewType = DemoPage.ViewType.Map
-            enabled: ArcGISRuntimeEnvironment.apiKey !== "" && mapViewContents !== null
+            enabled: apiKey !== "" && mapViewContents !== null
         }
         RadioButton {
             Layout.topMargin: 5
@@ -139,7 +136,7 @@ Control {
             autoExclusive: true
             checked: viewType === DemoPage.ViewType.Scene
             onClicked: viewType = DemoPage.ViewType.Scene;
-            enabled: ArcGISRuntimeEnvironment.apiKey !== "" && sceneViewContents !== null
+            enabled: apiKey !== "" && sceneViewContents !== null
         }
         Button {
             Layout.topMargin: 5

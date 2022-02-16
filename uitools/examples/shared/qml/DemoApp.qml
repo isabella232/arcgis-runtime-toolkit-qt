@@ -8,13 +8,15 @@
 // notice and use restrictions.
 //
 // See the Sample code usage restrictions document for further information.
-import QtQuick 2.12
-import QtQuick.Controls 2.12
+import QtQuick.Controls 2.15
+import QtQuick 2.15
 import Esri.ArcGISRuntime 100.14
 import Esri.ArcGISRuntime.Toolkit 100.14
 import "tools.js" as T
 
 Item {
+    property string applicationApiKey: ArcGISRuntimeEnvironment.apiKey
+
     Drawer {
         id: drawer
         height: parent.height
@@ -45,10 +47,23 @@ Item {
         }
     }
 
+    // When `usesApiKey` is true we blit `ArcGISRuntimeEnvironment.apiKey` with a
+    // blank string. When this binding is disabled we restore the original value.
+    Binding {
+        target: ArcGISRuntimeEnvironment
+        property: "apiKey"
+        value: ""
+        when: content.item ? content.item.usesApiKey : false
+        restoreMode: Binding.RestoreBindingOrValue
+    }
+
     Connections {
         target: content.item
         function onShowToolsButtonPressed() {
             drawer.open()
+        }
+        function onApiKeyChanged() {
+            applicationApiKey = apiKey;
         }
     }
 
@@ -57,6 +72,10 @@ Item {
         anchors.fill: parent
         focus: true
         source: viewList.currentIndex >= 0 ? listModel.get(viewList.currentIndex).url : ""
-        onLoaded: {item.handlesOwnAuthentication = listModel.get(viewList.currentIndex).handlesOwnAuthentication ?? false;}
+        onLoaded: {
+            item.handlesOwnAuthentication = listModel.get(viewList.currentIndex).handlesOwnAuthentication ?? false;
+            itme.usesApiKey = listModel.get(viewList.currentIndex).usesApiKey ?? true;
+            item.apiKey = applicationApiKey;
+        }
     }
 }
